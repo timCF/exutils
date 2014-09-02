@@ -49,8 +49,8 @@ defmodule Exutils do
     {a, b, c} = :erlang.now
     a*1000000000000 + b*1000000 + c
   end
-  def priv_dir do
-      :erlang.list_to_binary(:code.priv_dir(:betradar))
+  def priv_dir(name) do
+      :erlang.list_to_binary(:code.priv_dir(name))
   end
   def get_date do
     System.cmd("date") |> String.strip
