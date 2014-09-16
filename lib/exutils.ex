@@ -86,6 +86,10 @@ defmodule Exutils do
     "#{y}-#{zero_pad(m)}-#{zero_pad(d)} #{zero_pad(h)}:#{zero_pad(min)}:#{zero_pad(s)}"
   end
 
+  def make_verbose_datetime do
+    :erlang.now |> :calendar.now_to_local_time |> prepare_verbose_datetime
+  end
+  
 
   use Application
 
