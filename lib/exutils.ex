@@ -87,8 +87,30 @@ defmodule Exutils do
   end
 
   def make_verbose_datetime do
-    :erlang.now |> :calendar.now_to_local_time |> prepare_verbose_datetime
+    :os.timestamp |> :calendar.now_to_universal_time |> prepare_verbose_datetime
   end
+
+  def make_verbose_datetime(delta) do
+    (now_to_int(:os.timestamp) + delta)
+      |> int_to_now
+          |> :calendar.now_to_universal_time
+              |> prepare_verbose_datetime
+  end
+
+  def now_to_int {f,s,t} do
+    f*1000000*1000000 + s*1000000 + t
+  end
+
+  def int_to_now num do
+    {
+      div(num,1000000*1000000),
+      div(num,1000000) |> rem(1000000),
+      rem(num,1000000)
+    }
+  end
+  
+  
+  
   
 
   use Application
