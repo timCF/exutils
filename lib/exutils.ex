@@ -58,7 +58,7 @@ defmodule Exutils do
 
   def timestamp_to_datetime(<<a :: binary-size(4), b :: binary-size(6),  c :: binary-size(6)>>) do
     { String.to_integer(a), String.to_integer(b), String.to_integer(c) }
-      |> :calendar.now_to_local_time # maybe not use here local time?
+      |> :calendar.now_to_universal_time
   end
   def timestamp_to_datetime( input = <<a :: binary-size(4), b :: binary-size(6),  c :: binary-size(3)>>) do
     timestamp_to_datetime(input<>"000")
