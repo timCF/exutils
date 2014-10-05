@@ -71,11 +71,11 @@ defmodule Exutils do
   # some special funcs
   #
 
-  defp zero_pad(string), do: zero_pad(string, 2)
-  defp zero_pad(string, len) when is_integer(string) do
+  def zero_pad(string), do: zero_pad(string, 2)
+  def zero_pad(string, len) when is_integer(string) do
     zero_pad(:erlang.integer_to_binary(string), len)
   end
-  defp zero_pad(string, len) when is_binary(string) do
+  def zero_pad(string, len) when is_binary(string) do
     case String.length(string) do
       slen when slen >= len -> string
       slen -> << String.duplicate("0", (len - slen))::binary, string::binary >>
