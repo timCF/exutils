@@ -67,6 +67,12 @@ defmodule Exutils do
     timestamp_to_datetime(to_string(some))
   end
 
+  def makecharid(n \\ 30) do
+    makeid |> to_string |> :crypto.rand_seed
+    :crypto.strong_rand_bytes(n) |> :base64.encode
+  end
+  
+
   #
   # some special funcs
   #
