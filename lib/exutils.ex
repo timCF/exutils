@@ -116,7 +116,14 @@ defmodule Exutils do
   end
   
   
-  
+  defmodule HTTP do
+    def make_arg({key, value}) do
+      "#{key}=#{value |> to_string |> URI.encode_www_form}"
+    end
+    def make_args(args) do
+      Enum.map(args, &(make_arg(&1))) |> Enum.join("&")
+    end
+  end  
   
 
   use Application
