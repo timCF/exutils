@@ -124,6 +124,37 @@ defmodule Exutils do
       Enum.map(args, &(make_arg(&1))) |> Enum.join("&")
     end
   end  
+
+  def prepare_to_jsonify(subj, opts \\ %{})
+  def prepare_to_jsonify(hash, opts) when (is_map(hash) or is_list(hash)) do
+    case HashUtils.is_hash?(hash) do
+      true -> 
+        if  HashUtils.keys(hash)
+              |> Enum.any?(&( not(is_atom(&1) or is_binary(&1) or is_number(&1)) )) do
+          raise "Exutils : can't jsonify hash. Keys must be atom, binary or number. #{inspect hash}"
+        end
+        HashUtils.modify_all(hash, &(prepare_to_jsonify(&1, opts)))
+      false ->
+        Enum.map(hash, &(prepare_to_jsonify(&1, opts)))
+    end
+  end
+  def prepare_to_jsonify(some, _opts) when is_atom(some) do
+    to_string(some)
+  end
+  def prepare_to_jsonify(some, opts = %{tuple_values_to_lists: true}) when is_tuple(some) do
+    Tuple.to_list(some) |> Enum.map( &(prepare_to_jsonify(&1, opts)) )
+  end
+  def prepare_to_jsonify(some, opts) when is_tuple(some) do
+    raise "Exutils : can't jsonify tuples-in-values with these settings. #{inspect opts}"
+  end
+  def prepare_to_jsonify(some, _opts) do
+    some
+  end
+  
+  
+  
+  
+  
   
 
   use Application
