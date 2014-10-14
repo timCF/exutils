@@ -134,6 +134,7 @@ defmodule Exutils do
           raise "Exutils : can't jsonify hash. Keys must be atom, binary or number. #{inspect hash}"
         end
         HashUtils.modify_all(hash, &(prepare_to_jsonify(&1, opts)))
+          |> HashUtils.to_map
       false ->
         Enum.map(hash, &(prepare_to_jsonify(&1, opts)))
     end
