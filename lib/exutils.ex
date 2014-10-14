@@ -127,6 +127,7 @@ defmodule Exutils do
 
   def prepare_to_jsonify(subj, opts \\ %{})
   def prepare_to_jsonify(hash, opts) when (is_map(hash) or is_list(hash)) do
+    hash = HashUtils.struct_degradation(hash)
     case HashUtils.is_hash?(hash) do
       true -> 
         if  HashUtils.keys(hash)
