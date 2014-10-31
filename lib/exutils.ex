@@ -125,6 +125,36 @@ defmodule Exutils do
     end
   end  
 
+
+  defmodule SQL do
+    def get_question_marks(num) when (is_integer(num) and (num > 0)) do
+      res = Enum.map(1..num, fn(_) -> "?" end )
+          |> Enum.join(", ")
+      "( #{res} )"
+    end
+    def fields(lst) do
+      "( #{Enum.join(lst, ", ")} )"
+    end
+    def duplication_part(lst) do
+      Enum.map(lst, fn(field) -> "#{field} = values(#{field})" end )
+        |> Enum.join(", ")
+    end
+
+    def make_duplication_insert(%{table_name: table_name, fields: fields, unique_fields: unique_fields, rec_num: rec_num}) when ( is_binary(table_name) and is_list(fields) and is_list(unique_fields) and is_integer(rec_num) and (rec_num > 0) ) do
+      "INSERT INTO #{table_name} #{fields(fields)} VALUES #{make_results_question_marks(fields, rec_num)} ON DUPLICATE KEY UPDATE #{duplication_part(fields--unique_fields)};"
+    end
+    
+    defp make_results_question_marks(fields, rec_num) do
+      marks = length(fields) |> get_question_marks
+      res = Enum.map(1..rec_num, fn(_) -> marks end )
+        |> Enum.join(", ")
+      " #{res} "
+    end
+
+  end
+
+
+
   def prepare_to_jsonify(subj, opts \\ %{})
   def prepare_to_jsonify(hash, opts) when (is_map(hash) or is_list(hash)) do
     hash = HashUtils.struct_degradation(hash)
