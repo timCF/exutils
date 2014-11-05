@@ -144,7 +144,7 @@ defmodule Exutils do
       "INSERT INTO #{table_name} #{fields(fields)} VALUES #{make_results_question_marks(fields, rec_num)} ON DUPLICATE KEY UPDATE #{duplication_part(fields--unique_fields)};"
     end
     
-    defp make_results_question_marks(fields, rec_num) do
+    def make_results_question_marks(fields, rec_num) do
       marks = length(fields) |> get_question_marks
       res = Enum.map(1..rec_num, fn(_) -> marks end )
         |> Enum.join(", ")
