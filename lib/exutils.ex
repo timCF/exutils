@@ -195,6 +195,15 @@ defmodule Exutils do
     end
   end
   
+  defmacro pmap(lst, func) do
+    quote location: :keep do
+      Enum.map(unquote(lst), fn(el) -> ExTask.run(fn() -> unquote(func).(el) end) end)
+        |>  Enum.map(fn(task) ->
+              {:result, res} = ExTask.await(task, :infinity)
+              res
+            end)
+    end
+  end
   
 
   use Application
