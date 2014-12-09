@@ -155,24 +155,53 @@ defmodule Exutils do
     # checks
     #
 
-    defp check_packets_ok(packets) when is_tuple(packets), do: check_packets_ok([packets])
-    defp check_packets_ok(packets) do
-      Enum.all?(packets, 
-        fn(packet) -> 
-          (elem(packet, 0) == :ok_packet)
-        end)
+    defmacro prepare_packets(some) do
+      quote location: :keep do
+        case unquote(some) do
+          some when is_tuple(some) ->
+            case :erlang.size(some) == 5 do
+              true -> [some]
+              false -> :error
+            end
+          some_else when is_list(some_else) ->
+            case Enum.all?(some_else, &is_tuple/1) do
+              false -> :error
+              true -> 
+                case Enum.all?(some_else, &(:erlang.size(&1) == 5)) do
+                  false -> :error
+                  true -> some_else
+                end
+            end
+          something -> :error
+        end
+      end
     end
-    defp check_packets_deadlock(packets) when is_tuple(packets), do: check_packets_deadlock([packets])
-    defp check_packets_deadlock(packets) do
-      Enum.all?(packets, 
-        fn(packet) -> 
-          (elem(packet, 0) == :ok_packet) or 
-          (elem(packet, 4) == 'Deadlock found when trying to get lock; try restarting transaction') 
-        end) and 
-      Enum.any?(packets, 
-        fn(packet) -> 
-          (elem(packet, 4) == 'Deadlock found when trying to get lock; try restarting transaction') 
-        end)
+
+    defmacro check_packets_ok(packets) do
+      quote location: :keep do
+        case Exutils.SQL.prepare_packets(unquote(packets)) do
+          :error -> false
+          some -> Enum.all?(some, fn({el,_,_,_,_}) -> el == :ok_packet end)
+        end
+      end
+    end
+
+    defmacro check_packets_deadlock(packets) do
+      quote location: :keep do
+        case Exutils.SQL.prepare_packets(unquote(packets)) do
+          :error -> false
+          some_else -> 
+            Enum.all?(some_else, 
+              fn({el,_,_,_,res}) -> 
+                (el == :ok_packet) or 
+                (res == 'Deadlock found when trying to get lock; try restarting transaction') 
+              end) and 
+            Enum.any?(some_else, 
+              fn({_,_,_,_,res}) -> 
+                res == 'Deadlock found when trying to get lock; try restarting transaction' 
+              end)
+        end
+      end
     end
 
   end

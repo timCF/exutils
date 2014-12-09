@@ -1,6 +1,7 @@
 defmodule ExutilsTest do
   use ExUnit.Case
   require Exutils
+  require Exutils.SQL
 
   defp dec(el), do: el - 1
 
@@ -24,6 +25,15 @@ defmodule ExutilsTest do
     assert [2, 3, 4] == Exutils.pmap([1,2,3], &(&1+1))
     assert [2, 4, 6] == Exutils.pmap([1,2,3], fn(el) -> el * 2 end)
     assert [0, 1, 2] == Exutils.pmap([1,2,3], &dec/1)
+  end
+
+  test "SQL.checks" do
+    assert false == Exutils.SQL.check_packets_ok(123)
+    assert true == Exutils.SQL.check_packets_ok({:ok_packet, 0,0,0,0})
+    assert true == Exutils.SQL.check_packets_ok([{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0,0}])
+    assert false == Exutils.SQL.check_packets_ok([{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0}])
+    assert false == Exutils.SQL.check_packets_deadlock([{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0,0}])
+    assert true == Exutils.SQL.check_packets_deadlock([{:error_packet, 0,0,0,'Deadlock found when trying to get lock; try restarting transaction' }, {:ok_packet, 0,0,0,0}])
   end
 
 end
