@@ -180,8 +180,12 @@ defmodule Exutils do
     defmacro check_packets_ok(packets) do
       quote location: :keep do
         case Exutils.SQL.prepare_packets(unquote(packets)) do
-          :error -> false
-          some -> Enum.all?(some, fn({el,_,_,_,_}) -> el == :ok_packet end)
+          :error -> {:error, unquote(packets)}
+          some -> 
+            case Enum.all?(some, fn({el,_,_,_,_}) -> el == :ok_packet end) do
+              true -> :ok
+              false -> {:error, unquote(packets)}
+            end
         end
       end
     end
@@ -189,17 +193,21 @@ defmodule Exutils do
     defmacro check_packets_deadlock(packets) do
       quote location: :keep do
         case Exutils.SQL.prepare_packets(unquote(packets)) do
-          :error -> false
+          :error -> {:error, unquote(packets)}
           some_else -> 
-            Enum.all?(some_else, 
-              fn({el,_,_,_,res}) -> 
-                (el == :ok_packet) or 
-                (res == 'Deadlock found when trying to get lock; try restarting transaction') 
-              end) and 
-            Enum.any?(some_else, 
-              fn({_,_,_,_,res}) -> 
-                res == 'Deadlock found when trying to get lock; try restarting transaction' 
-              end)
+            resbool = Enum.all?(some_else, 
+                        fn({el,_,_,_,res}) -> 
+                          (el == :ok_packet) or 
+                          (res == 'Deadlock found when trying to get lock; try restarting transaction') 
+                        end) and 
+                      Enum.any?(some_else, 
+                        fn({_,_,_,_,res}) -> 
+                          res == 'Deadlock found when trying to get lock; try restarting transaction' 
+                        end)
+            case resbool do
+              true -> :ok
+              false -> {:error, unquote(packets)}
+            end
         end
       end
     end
