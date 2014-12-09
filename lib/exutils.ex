@@ -151,6 +151,30 @@ defmodule Exutils do
       " #{res} "
     end
 
+    #
+    # checks
+    #
+
+    defp check_packets_ok(packets) when is_tuple(packets), do: check_packets_ok([packets])
+    defp check_packets_ok(packets) do
+      Enum.all?(packets, 
+        fn(packet) -> 
+          (elem(packet, 0) == :ok_packet)
+        end)
+    end
+    defp check_packets_deadlock(packets) when is_tuple(packets), do: check_packets_deadlock([packets])
+    defp check_packets_deadlock(packets) do
+      Enum.all?(packets, 
+        fn(packet) -> 
+          (elem(packet, 0) == :ok_packet) or 
+          (elem(packet, 4) == 'Deadlock found when trying to get lock; try restarting transaction') 
+        end) and 
+      Enum.any?(packets, 
+        fn(packet) -> 
+          (elem(packet, 4) == 'Deadlock found when trying to get lock; try restarting transaction') 
+        end)
+    end
+
   end
 
 
