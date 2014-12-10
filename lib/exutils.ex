@@ -159,7 +159,7 @@ defmodule Exutils do
       quote location: :keep do
         case unquote(some) do
           some when is_tuple(some) ->
-            case :erlang.size(some) == 5 do
+            case :erlang.size(some) > 0 do
               true -> [some]
               false -> :error
             end
@@ -167,7 +167,7 @@ defmodule Exutils do
             case Enum.all?(some_else, &is_tuple/1) do
               false -> :error
               true -> 
-                case Enum.all?(some_else, &(:erlang.size(&1) == 5)) do
+                case Enum.all?(some_else, &(:erlang.size(&1) > 0)) do
                   false -> :error
                   true -> some_else
                 end
@@ -182,7 +182,7 @@ defmodule Exutils do
         case Exutils.SQL.prepare_packets(unquote(packets)) do
           :error -> {:error, unquote(packets)}
           some -> 
-            case Enum.all?(some, fn({el,_,_,_,_}) -> el == :ok_packet end) do
+            case Enum.all?(some, fn(el) -> elem(el, 0) == :ok_packet end) do
               true -> :ok
               false -> {:error, unquote(packets)}
             end
@@ -196,13 +196,13 @@ defmodule Exutils do
           :error -> {:error, unquote(packets)}
           some_else -> 
             resbool = Enum.all?(some_else, 
-                        fn({el,_,_,_,res}) -> 
-                          (el == :ok_packet) or 
-                          (res == 'Deadlock found when trying to get lock; try restarting transaction') 
+                        fn(el) -> 
+                          (elem(el, 0) == :ok_packet) or 
+                          (Tuple.to_list(el) |> Enum.member?('Deadlock found when trying to get lock; try restarting transaction')) 
                         end) and 
                       Enum.any?(some_else, 
-                        fn({_,_,_,_,res}) -> 
-                          res == 'Deadlock found when trying to get lock; try restarting transaction' 
+                        fn(el) -> 
+                          Tuple.to_list(el) |> Enum.member?('Deadlock found when trying to get lock; try restarting transaction')
                         end)
             case resbool do
               true -> :ok

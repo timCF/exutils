@@ -31,7 +31,7 @@ defmodule ExutilsTest do
     assert {:error, 123} == Exutils.SQL.check_packets_ok(123)
     assert :ok == Exutils.SQL.check_packets_ok({:ok_packet, 0,0,0,0})
     assert :ok == Exutils.SQL.check_packets_ok([{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0,0}])
-    assert {:error, [{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0}]} == Exutils.SQL.check_packets_ok([{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0}])
+    assert :ok == Exutils.SQL.check_packets_ok([{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0}])
     assert {:error, [{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0,0}]} == Exutils.SQL.check_packets_deadlock([{:ok_packet, 0,0,0,0}, {:ok_packet, 0,0,0,0}])
     assert :ok == Exutils.SQL.check_packets_deadlock([{:error_packet, 0,0,0,'Deadlock found when trying to get lock; try restarting transaction' }, {:ok_packet, 0,0,0,0}])
   end
