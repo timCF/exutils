@@ -219,7 +219,7 @@ defmodule Exutils do
   def prepare_to_jsonify(subj, opts \\ %{})
   def prepare_to_jsonify(hash, opts) when (is_map(hash) or is_list(hash)) do
     hash = HashUtils.struct_degradation(hash)
-    case HashUtils.is_hash?(hash) do
+    case HashUtils.is_hash?(hash) and (hash != []) do
       true -> 
         if  HashUtils.keys(hash)
               |> Enum.any?(&( not(is_atom(&1) or is_binary(&1) or is_number(&1)) )) do
