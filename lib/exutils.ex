@@ -198,11 +198,13 @@ defmodule Exutils do
             resbool = Enum.all?(some_else, 
                         fn(el) -> 
                           (elem(el, 0) == :ok_packet) or 
-                          (Tuple.to_list(el) |> Enum.member?('Deadlock found when trying to get lock; try restarting transaction')) 
+                          (Tuple.to_list(el) |> Enum.member?('Deadlock found when trying to get lock; try restarting transaction')) or
+                          (Tuple.to_list(el) |> Enum.member?('Lock wait timeout exceeded; try restarting transaction'))
                         end) and 
                       Enum.any?(some_else, 
                         fn(el) -> 
-                          Tuple.to_list(el) |> Enum.member?('Deadlock found when trying to get lock; try restarting transaction')
+                          (Tuple.to_list(el) |> Enum.member?('Deadlock found when trying to get lock; try restarting transaction')) or
+                          (Tuple.to_list(el) |> Enum.member?('Lock wait timeout exceeded; try restarting transaction'))
                         end)
             case resbool do
               true -> :ok
