@@ -260,25 +260,24 @@ defmodule Exutils do
   
   defmacro pmap(lst, nums, func) do
     quote location: :keep do
-      Exutils.split_list(unquote(lst), unquote(nums))
+      Exutils.split_list_inner(unquote(lst), unquote(nums), [])
       |> Enum.map( fn(el) -> ExTask.run(fn() -> Enum.map(el, unquote(func)) end) end)
       |> Enum.reduce([], 
       		fn(task, lst) ->
               {:result, res} = ExTask.await(task, :infinity)
-              [res|lst]
+              (res ++ lst)
             end)
-      |> :lists.reverse
-      |> List.flatten
     end
   end
 
 
 
-  def split_list(lst, len, res \\ [])
-  def split_list([], len, res) when (is_integer(len) and (len > 0)), do: :lists.reverse(res)
-  def split_list(lst, len, res) when (is_list(lst) and is_integer(len) and (len > 0)) do
+  def split_list(lst, len) when (is_list(lst) and is_integer(len) and (len > 0)), do: split_list_inner(lst, len, []) |> :lists.reverse
+
+  def split_list_inner([], len, res) when (is_integer(len) and (len > 0)), do: res
+  def split_list_inner(lst, len, res) when (is_list(lst) and is_integer(len) and (len > 0)) do
   	{el, rest} = Enum.split(lst, len)
-  	split_list(rest, len, [el|res])
+  	split_list_inner(rest, len, [el|res])	
   end
   
   
