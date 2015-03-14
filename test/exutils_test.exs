@@ -21,10 +21,16 @@ defmodule ExutilsTest do
   	assert res != 2
   end
 
+  test "split_list" do
+	assert [[0,true,"1"],[2,3,4],[5]] = Exutils.split_list([0,true,"1",2,3,4,5], 3)
+  end
+
   test "pmap" do
-    assert [2, 3, 4] == Exutils.pmap([1,2,3], &(&1+1))
-    assert [2, 4, 6] == Exutils.pmap([1,2,3], fn(el) -> el * 2 end)
-    assert [0, 1, 2] == Exutils.pmap([1,2,3], &dec/1)
+    assert [2, 3, 4] == Exutils.pmap([1,2,3], 2, &(&1+1))
+    assert [2, 4, 6] == Exutils.pmap([1,2,3], 2, fn(el) -> el * 2 end)
+    assert [0, 1, 2] == Exutils.pmap([1,2,3], 10, &dec/1)
+	lst = Enum.map(1..50, &(&1))
+    assert lst == Exutils.pmap(lst, 5, &(&1))
   end
 
   test "SQL.checks" do

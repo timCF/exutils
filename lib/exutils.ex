@@ -258,15 +258,31 @@ defmodule Exutils do
     end
   end
   
-  defmacro pmap(lst, func) do
+  defmacro pmap(lst, nums, func) do
     quote location: :keep do
-      Enum.map(unquote(lst), fn(el) -> ExTask.run(fn() -> unquote(func).(el) end) end)
-        |>  Enum.map(fn(task) ->
+      Exutils.split_list(unquote(lst), unquote(nums))
+      |> Enum.map( fn(el) -> ExTask.run(fn() -> Enum.map(el, unquote(func)) end) end)
+      |> Enum.reduce([], 
+      		fn(task, lst) ->
               {:result, res} = ExTask.await(task, :infinity)
-              res
+              [res|lst]
             end)
+      |> :lists.reverse
+      |> List.flatten
     end
   end
+
+
+
+  def split_list(lst, len, res \\ [])
+  def split_list([], len, res) when (is_integer(len) and (len > 0)), do: :lists.reverse(res)
+  def split_list(lst, len, res) when (is_list(lst) and is_integer(len) and (len > 0)) do
+  	{el, rest} = Enum.split(lst, len)
+  	split_list(rest, len, [el|res])
+  end
+  
+  
+
   
   def md5_str(inp) when is_binary(inp) do
     :erlang.md5(inp)
