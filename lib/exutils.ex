@@ -121,23 +121,20 @@ defmodule Exutils do
       "#{key}=#{value |> to_string |> URI.encode_www_form}"
     end
     def make_args(args) do
-      Enum.map(args, &(make_arg(&1))) |> Enum.join("&")
+      Stream.map(args, &(make_arg(&1))) |> Enum.join("&")
     end
   end  
 
 
   defmodule SQL do
     def get_question_marks(num) when (is_integer(num) and (num > 0)) do
-      res = Enum.map(1..num, fn(_) -> "?" end )
-          |> Enum.join(", ")
-      "( #{res} )"
+      "(#{Stream.map(1..num, fn(_) -> "?" end ) |> Enum.join(",")})"
     end
     def fields(lst) do
-      "( #{Enum.join(lst, ", ")} )"
+      "(#{Enum.join(lst, ",")})"
     end
     def duplication_part(lst) do
-      Enum.map(lst, fn(field) -> "#{field} = values(#{field})" end )
-        |> Enum.join(", ")
+      Stream.map(lst, fn(field) -> "#{field} = values(#{field})" end ) |> Enum.join(",")
     end
 
     def make_duplication_insert(%{table_name: table_name, fields: fields, unique_fields: unique_fields, rec_num: rec_num}) when ( is_binary(table_name) and is_list(fields) and is_list(unique_fields) and is_integer(rec_num) and (rec_num > 0) ) do
@@ -146,9 +143,7 @@ defmodule Exutils do
     
     def make_results_question_marks(fields, rec_num) do
       marks = length(fields) |> get_question_marks
-      res = Enum.map(1..rec_num, fn(_) -> marks end )
-        |> Enum.join(", ")
-      " #{res} "
+      " #{Stream.map(1..rec_num, fn(_) -> marks end ) |> Enum.join(",")} "
     end
 
     #
@@ -258,15 +253,32 @@ defmodule Exutils do
     end
   end
   
-  defmacro pmap(lst, nums, func) do
-    quote location: :keep do
-      Exutils.split_list_inner(unquote(lst), unquote(nums), [])
-      |> Enum.map( fn(el) -> ExTask.run(fn() -> Enum.map(el, unquote(func)) end) end)
-      |> Enum.reduce([], 
-      		fn(task, lst) ->
-              {:result, res} = ExTask.await(task, :infinity)
-              (res ++ lst)
-            end)
+  def pmap_lim([], _, _, _), do: []
+  def pmap_lim(lst, num, threads_limit, func) when ((threads_limit > 0) and (num > 0)) do 
+    case (length(lst) / num) > threads_limit do
+      true -> 
+        case round(length(lst) / threads_limit) do
+          0 -> pmap(lst, 1, func)
+          int -> pmap(lst, int, func)
+        end
+      false -> 
+        pmap(lst, num, func)
+    end
+  end
+  def pmap([], _, _), do: []
+  def pmap(lst, num, func) when (num > 0) do
+      split_n_run(lst, num, func, [])
+      |> Enum.map( fn(task) -> 
+                      {:result, res} = ExTask.await(task, :infinity)
+                      res
+                   end )
+      |> :lists.reverse
+      |> :lists.concat
+  end
+  defp split_n_run(lst, num, func, acc) do
+    case Enum.split(lst, num) do
+      {el, []} -> [ExTask.run(fn() -> Enum.map(el, func) end)|acc]
+      {el, rest} -> split_n_run(rest, num, func, [ExTask.run(fn() -> Enum.map(el, func) end)|acc])
     end
   end
 
