@@ -378,9 +378,9 @@ defmodule Exutils do
       fl = "#{fl}#{Stream.map(1..dig_up, fn(_) -> "0" end ) |> Enum.join}"
       {to_add, rest_fl} = String.split_at(fl, dig_up)
       case String.strip("#{int}#{to_add}.#{rest_fl}", ?0) |> String.split(".") do
-        ["", ""] -> "0.0"
+        ["", ""] -> "0"
         ["", fl] -> "0.#{fl}"
-        [int, ""] -> "#{int}.0"
+        [int, ""] -> int
         [int, fl] -> "#{int}.#{fl}"
       end
     end
@@ -399,9 +399,9 @@ defmodule Exutils do
       [int, old_fl] = String.split(bin, ".")
       {int, fl} = String.split_at("#{Stream.map(1..dig_down, fn(_) -> "0" end ) |> Enum.join}#{int}", -1 * dig_down)
       case String.strip("#{int}.#{fl}#{old_fl}", ?0) |> String.split(".") do
-        ["", ""] -> "0.0"
+        ["", ""] -> "0"
         ["", fl] -> "0.#{fl}"
-        [int, ""] -> "#{int}.0"
+        [int, ""] -> int
         [int, fl] -> "#{int}.#{fl}"
       end
     end

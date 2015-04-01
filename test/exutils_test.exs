@@ -85,7 +85,7 @@ defmodule ExutilsTest do
     assert "-0.101" == Exutils.BinArith.mult_10("-0.00101", 2)
     assert "-1.01" == Exutils.BinArith.mult_10("-0.00101", 3)
     assert "-12300.1" == Exutils.BinArith.mult_10("-123.00100", 2)
-    assert "-12300.0" == Exutils.BinArith.mult_10("-123.00000", 2)
+    assert "-12300" == Exutils.BinArith.mult_10("-123.00000", 2)
     assert "10000" == Exutils.BinArith.mult_10("100", 2)
     assert "-10000" == Exutils.BinArith.mult_10("-100", 2)
 
