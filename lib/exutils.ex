@@ -313,8 +313,13 @@ defmodule Exutils do
     @is_float_regexp ~r/^([-]?((([1-9](\d+)?)|0)\.(\d+)))$/
 
     def parsable_number(bin) when is_binary(bin), do: Regex.match?(@is_number_regexp, bin)
+    def parsable_number(_), do: false
+
     def parsable_integer(bin) when is_binary(bin), do: Regex.match?(@is_integer_regexp, bin)
+    def parsable_integer(_), do: false
+
     def parsable_float(bin) when is_binary(bin), do: Regex.match?(@is_float_regexp, bin)
+    def parsable_float(_), do: false
 
     #
     # next public funcs work correctly only when parsable_number(bin) == true !!! (float | int)
@@ -333,6 +338,7 @@ defmodule Exutils do
           end
       end
     end
+    def maybe_to_int_normalize(some), do: some
 
     def split_number(bin) when is_binary(bin) do
       {sign, bin} = make_unsigned(bin)

@@ -51,6 +51,11 @@ defmodule ExutilsTest do
   end
 
   test "BinArith" do
+
+    assert not Exutils.BinArith.parsable_number(["qwe", "1"])
+    assert not Exutils.BinArith.parsable_float(["qwe", "1"])
+    assert not Exutils.BinArith.parsable_integer(["qwe", "1"])
+
     assert Exutils.BinArith.parsable_number("0.1200")
     assert Exutils.BinArith.parsable_number("2.1200")
     assert Exutils.BinArith.parsable_number("-2300")
@@ -98,5 +103,7 @@ defmodule ExutilsTest do
     assert "123400" == Exutils.BinArith.maybe_to_int_normalize("123400.00")
     assert "-123400.001" == Exutils.BinArith.maybe_to_int_normalize("-123400.00100")
     assert "0.001" == Exutils.BinArith.maybe_to_int_normalize("0.00100")
+    assert ["qwe", "1"] == Exutils.BinArith.maybe_to_int_normalize(["qwe", "1"])
+
   end
 end
