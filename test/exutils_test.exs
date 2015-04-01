@@ -77,10 +77,26 @@ defmodule ExutilsTest do
 
     assert "0.1" == Exutils.BinArith.mult_10("0.001", 2)
     assert "-0.1" == Exutils.BinArith.mult_10("-0.001", 2)
-    assert "-0.1" == Exutils.BinArith.mult_10("-0.00100", 2)
+    assert "-0.101" == Exutils.BinArith.mult_10("-0.00101", 2)
+    assert "-1.01" == Exutils.BinArith.mult_10("-0.00101", 3)
     assert "-12300.1" == Exutils.BinArith.mult_10("-123.00100", 2)
     assert "-12300.0" == Exutils.BinArith.mult_10("-123.00000", 2)
     assert "10000" == Exutils.BinArith.mult_10("100", 2)
     assert "-10000" == Exutils.BinArith.mult_10("-100", 2)
+
+    assert "0.00001" == Exutils.BinArith.div_10("0.001", 2)
+    assert "-0.00001" == Exutils.BinArith.div_10("-0.001", 2)
+    assert "-0.00001" == Exutils.BinArith.div_10("-0.00100", 2)
+    assert "-1.23001" == Exutils.BinArith.div_10("-123.00100", 2)
+    assert "-1.23" == Exutils.BinArith.div_10("-123.00000", 2)
+    assert "1" == Exutils.BinArith.div_10("100", 2)
+    assert "-1" == Exutils.BinArith.div_10("-100", 2)
+    assert "-0.103" == Exutils.BinArith.div_10("-103", 3)
+
+    assert "0" == Exutils.BinArith.maybe_to_int_normalize("0.00")
+    assert "-1" == Exutils.BinArith.maybe_to_int_normalize("-1")
+    assert "123400" == Exutils.BinArith.maybe_to_int_normalize("123400.00")
+    assert "-123400.001" == Exutils.BinArith.maybe_to_int_normalize("-123400.00100")
+    assert "0.001" == Exutils.BinArith.maybe_to_int_normalize("0.00100")
   end
 end

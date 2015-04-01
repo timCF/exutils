@@ -307,51 +307,99 @@ defmodule Exutils do
 
 
   defmodule BinArith do
+
     @is_number_regexp ~r/^([-]?(([1-9](\d+)?)|0|((([1-9](\d+)?)|0)\.(\d+))))$/
     @is_integer_regexp ~r/^([-]?(([1-9](\d+)?)|0))$/
     @is_float_regexp ~r/^([-]?((([1-9](\d+)?)|0)\.(\d+)))$/
-
-    #
-    # not operating with float numbers, binaries only !!!
-    #
 
     def parsable_number(bin) when is_binary(bin), do: Regex.match?(@is_number_regexp, bin)
     def parsable_integer(bin) when is_binary(bin), do: Regex.match?(@is_integer_regexp, bin)
     def parsable_float(bin) when is_binary(bin), do: Regex.match?(@is_float_regexp, bin)
 
+    #
+    # next public funcs work correctly only when parsable_number(bin) == true !!! (float | int)
+    #
+
+    def maybe_to_int_normalize(bin) when is_binary(bin) do
+      {sign, bin} = make_unsigned(bin)
+      case parsable_integer(bin) do
+        true -> "#{sign}#{bin}"
+        false ->
+          case String.strip(bin, ?0) |> String.split(".") do
+            ["", ""] -> "0"
+            ["", fl] -> "#{sign}0.#{fl}"
+            [int, ""] -> "#{sign}#{int}"
+            [int, fl] -> "#{sign}#{int}.#{fl}"
+          end
+      end
+    end
+
     def split_number(bin) when is_binary(bin) do
-      {mark, bin} = make_unsigned(bin)
+      {sign, bin} = make_unsigned(bin)
       case String.split(bin, ".") do
-        [one] -> ["#{mark}#{one}", "0"]
-        [one, two] -> ["#{mark}#{one}", "#{mark}0.#{two}"]
+        [one] -> ["#{sign}#{one}", "0"]
+        [one, two] -> ["#{sign}#{one}", "#{sign}0.#{two}"]
       end
     end
 
     def mult_10(bin, dig_up) when (is_binary(bin) and is_integer(dig_up) and (dig_up > 0)) do
-      {mark, bin} = make_unsigned(bin)
+      {sign, bin} = make_unsigned(bin)
       case parsable_integer(bin) do
-        true -> mark<>mult_10_int(bin, dig_up)
-        false -> mark<>mult_10_float(bin, dig_up)
+        true -> sign<>mult_10_int_unsigned(bin, dig_up)
+        false -> sign<>mult_10_float_unsigned(bin, dig_up)
       end
     end
+
+    def div_10(bin, dig_down) when (is_binary(bin) and is_integer(dig_down) and (dig_down > 0)) do
+      {sign, bin} = make_unsigned(bin)
+      case parsable_integer(bin) do
+        true -> sign<>div_10_int_unsigned(bin, dig_down)
+        false -> sign<>div_10_float_unsigned(bin, dig_down)
+      end
+    end
+
+    #
+    # priv funcs
+    #
 
     defp make_unsigned(<<"-", unsigned::binary>>), do: {"-",unsigned}
     defp make_unsigned(some), do: {"", some}
 
-    defp mult_10_int("0", _), do: "0"
-    defp mult_10_int(bin, dig_up), do: "#{bin}#{Stream.map(1..dig_up, fn(_) -> "0" end ) |> Enum.join}"
-    
-    defp mult_10_float(bin, dig_up) do
+    defp mult_10_int_unsigned("0", _), do: "0"
+    defp mult_10_int_unsigned(bin, dig_up), do: "#{bin}#{Stream.map(1..dig_up, fn(_) -> "0" end ) |> Enum.join}"
+    defp mult_10_float_unsigned(bin, dig_up) do
       [int, fl] = String.split(bin, ".")
       fl = "#{fl}#{Stream.map(1..dig_up, fn(_) -> "0" end ) |> Enum.join}"
       {to_add, rest_fl} = String.split_at(fl, dig_up)
-      res = String.strip("#{int}#{to_add}.#{rest_fl}", ?0)
-      case String.split(res, ".") do
+      case String.strip("#{int}#{to_add}.#{rest_fl}", ?0) |> String.split(".") do
+        ["", ""] -> "0.0"
         ["", fl] -> "0.#{fl}"
         [int, ""] -> "#{int}.0"
-        [_, _] -> res
+        [int, fl] -> "#{int}.#{fl}"
       end
     end
+
+    defp div_10_int_unsigned("0", _), do: "0"
+    defp div_10_int_unsigned(bin, dig_down) do
+      {int, fl} = String.split_at("#{Stream.map(1..dig_down, fn(_) -> "0" end ) |> Enum.join}#{bin}", -1 * dig_down)
+      case String.strip("#{int}.#{fl}", ?0) |> String.split(".") do
+        ["", ""] -> "0"
+        ["", fl] -> "0.#{fl}"
+        [int, ""] -> int
+        [int, fl] -> "#{int}.#{fl}"
+      end
+    end
+    defp div_10_float_unsigned(bin, dig_down) do
+      [int, old_fl] = String.split(bin, ".")
+      {int, fl} = String.split_at("#{Stream.map(1..dig_down, fn(_) -> "0" end ) |> Enum.join}#{int}", -1 * dig_down)
+      case String.strip("#{int}.#{fl}#{old_fl}", ?0) |> String.split(".") do
+        ["", ""] -> "0.0"
+        ["", fl] -> "0.#{fl}"
+        [int, ""] -> "#{int}.0"
+        [int, fl] -> "#{int}.#{fl}"
+      end
+    end
+
 
   end
 
