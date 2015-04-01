@@ -305,6 +305,57 @@ defmodule Exutils do
   defp hex(n) when (n < 10), do: ('0' |> List.first) + n
   defp hex(n) when ((n>=10) and (n < 16)), do: ('a' |> List.first) + n - 10
 
+
+  defmodule BinArith do
+    @is_number_regexp ~r/^([-]?(([1-9](\d+)?)|0|((([1-9](\d+)?)|0)\.(\d+))))$/
+    @is_integer_regexp ~r/^([-]?(([1-9](\d+)?)|0))$/
+    @is_float_regexp ~r/^([-]?((([1-9](\d+)?)|0)\.(\d+)))$/
+
+    #
+    # not operating with float numbers, binaries only !!!
+    #
+
+    def parsable_number(bin) when is_binary(bin), do: Regex.match?(@is_number_regexp, bin)
+    def parsable_integer(bin) when is_binary(bin), do: Regex.match?(@is_integer_regexp, bin)
+    def parsable_float(bin) when is_binary(bin), do: Regex.match?(@is_float_regexp, bin)
+
+    def split_number(bin) when is_binary(bin) do
+      {mark, bin} = make_unsigned(bin)
+      case String.split(bin, ".") do
+        [one] -> ["#{mark}#{one}", "0"]
+        [one, two] -> ["#{mark}#{one}", "#{mark}0.#{two}"]
+      end
+    end
+
+    def mult_10(bin, dig_up) when (is_binary(bin) and is_integer(dig_up) and (dig_up > 0)) do
+      {mark, bin} = make_unsigned(bin)
+      case parsable_integer(bin) do
+        true -> mark<>mult_10_int(bin, dig_up)
+        false -> mark<>mult_10_float(bin, dig_up)
+      end
+    end
+
+    defp make_unsigned(<<"-", unsigned::binary>>), do: {"-",unsigned}
+    defp make_unsigned(some), do: {"", some}
+
+    defp mult_10_int("0", _), do: "0"
+    defp mult_10_int(bin, dig_up), do: "#{bin}#{Stream.map(1..dig_up, fn(_) -> "0" end ) |> Enum.join}"
+    
+    defp mult_10_float(bin, dig_up) do
+      [int, fl] = String.split(bin, ".")
+      fl = "#{fl}#{Stream.map(1..dig_up, fn(_) -> "0" end ) |> Enum.join}"
+      {to_add, rest_fl} = String.split_at(fl, dig_up)
+      res = String.strip("#{int}#{to_add}.#{rest_fl}", ?0)
+      case String.split(res, ".") do
+        ["", fl] -> "0.#{fl}"
+        [int, ""] -> "#{int}.0"
+        [_, _] -> res
+      end
+    end
+
+  end
+
+
   use Application
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html

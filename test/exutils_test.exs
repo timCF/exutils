@@ -50,4 +50,37 @@ defmodule ExutilsTest do
     assert :ok == Exutils.SQL.check_packets_deadlock([{:error_packet, 0,0,0,'Deadlock found when trying to get lock; try restarting transaction' }, {:ok_packet, 0,0,0,0}])
   end
 
+  test "BinArith" do
+    assert Exutils.BinArith.parsable_number("0.1200")
+    assert Exutils.BinArith.parsable_number("2.1200")
+    assert Exutils.BinArith.parsable_number("-2300")
+    assert not Exutils.BinArith.parsable_number("00.1200")
+    assert not Exutils.BinArith.parsable_number("0.1d200")
+    assert not Exutils.BinArith.parsable_number("2.")
+    assert not Exutils.BinArith.parsable_number(".203")
+
+    assert Exutils.BinArith.parsable_float("0.1200")
+    assert Exutils.BinArith.parsable_float("0.000")
+    assert Exutils.BinArith.parsable_float("-0.000")
+    assert Exutils.BinArith.parsable_float("-2.1200")
+    assert not Exutils.BinArith.parsable_float("2300")
+    assert not Exutils.BinArith.parsable_float("00.1200")
+    assert not Exutils.BinArith.parsable_float("0.1d200")
+    assert not Exutils.BinArith.parsable_float("2.")
+    assert not Exutils.BinArith.parsable_float(".203")
+
+    assert Exutils.BinArith.parsable_integer("-1200")
+    assert Exutils.BinArith.parsable_integer("0")
+    assert not Exutils.BinArith.parsable_integer("02300")
+    assert not Exutils.BinArith.parsable_integer("23f00")
+    assert not Exutils.BinArith.parsable_integer("2300x")
+
+    assert "0.1" == Exutils.BinArith.mult_10("0.001", 2)
+    assert "-0.1" == Exutils.BinArith.mult_10("-0.001", 2)
+    assert "-0.1" == Exutils.BinArith.mult_10("-0.00100", 2)
+    assert "-12300.1" == Exutils.BinArith.mult_10("-123.00100", 2)
+    assert "-12300.0" == Exutils.BinArith.mult_10("-123.00000", 2)
+    assert "10000" == Exutils.BinArith.mult_10("100", 2)
+    assert "-10000" == Exutils.BinArith.mult_10("-100", 2)
+  end
 end
