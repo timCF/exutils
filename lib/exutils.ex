@@ -255,6 +255,7 @@ defmodule Exutils do
   
   def pmap_lim([], _, _, _), do: []
   def pmap_lim(lst, num, threads_limit, func) when ((threads_limit > 0) and (num > 0)) do 
+    lst = Enum.to_list(lst)
     case (length(lst) / num) > threads_limit do
       true -> 
         case round(length(lst) / threads_limit) do
