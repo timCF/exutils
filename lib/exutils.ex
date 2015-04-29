@@ -265,22 +265,20 @@ defmodule Exutils do
         pmap(lst, num, func)
     end
   end
+
   def pmap([], _, _), do: []
   def pmap(lst, num, func) when (num > 0) do
-      split_n_run(lst, num, func, [])
-      |> Enum.map( fn(task) -> 
-                      {:result, res} = ExTask.await(task, :infinity)
-                      res
-                   end )
+      :rpc.pmap({__MODULE__, :pmap_proxy}, [], split_list_pmap(lst, num, func, []))
       |> :lists.reverse
       |> :lists.concat
   end
-  defp split_n_run(lst, num, func, acc) do
+  defp split_list_pmap(lst, num, func, acc) do
     case Enum.split(lst, num) do
-      {el, []} -> [ExTask.run(fn() -> Enum.map(el, func) end)|acc]
-      {el, rest} -> split_n_run(rest, num, func, [ExTask.run(fn() -> Enum.map(el, func) end)|acc])
+      {el, []} -> [fn() -> Enum.map(el, func) end | acc]
+      {el, rest} -> split_list_pmap(rest, num, func, [fn() -> Enum.map(el, func) end | acc])
     end
   end
+  def pmap_proxy(lambda), do: lambda.()
 
 
 
