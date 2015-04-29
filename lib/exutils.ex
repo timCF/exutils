@@ -268,17 +268,17 @@ defmodule Exutils do
 
   def pmap([], _, _), do: []
   def pmap(lst, num, func) when (num > 0) do
-      :rpc.pmap({__MODULE__, :pmap_proxy}, [], split_list_pmap(lst, num, func, []))
+      :rpc.pmap({__MODULE__, :pmap_proxy}, [func], split_list_pmap(lst, num, []))
       |> :lists.reverse
       |> :lists.concat
   end
-  defp split_list_pmap(lst, num, func, acc) do
+  defp split_list_pmap(lst, num, acc) do
     case Enum.split(lst, num) do
-      {el, []} -> [fn() -> Enum.map(el, func) end | acc]
-      {el, rest} -> split_list_pmap(rest, num, func, [fn() -> Enum.map(el, func) end | acc])
+      {el, []} -> [el|acc]
+      {el, rest} -> split_list_pmap(rest, num, [el|acc])
     end
   end
-  def pmap_proxy(lambda), do: lambda.()
+  def pmap_proxy(lst, func), do: Enum.map(lst, func)
 
 
 
