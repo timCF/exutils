@@ -1,6 +1,5 @@
 defmodule Exutils do
 
-
   # pretty printing
   defp give_tab(num \\ 0, res \\ "")
   defp give_tab(0, res) do
@@ -280,6 +279,41 @@ defmodule Exutils do
     end
   end
   def pmap_proxy(lst, func), do: Enum.map(lst, func)
+
+
+  def map_reduce(lst, acc, lenw, tlim, mapper, reducer), do: preduce_inner(lst, acc, lenw, tlim, mapper, reducer, 0)
+  
+  defp preduce_inner([], acc, _, _, _, _, 0), do: acc
+  defp preduce_inner([], acc, lenw, tlim, mapper, reducer, workers_active) when (workers_active > 0) do
+    %{res: res, counter: counter} = receive_preduce([],0)
+    preduce_inner([], Enum.reduce(res, acc, reducer), lenw, tlim, mapper, reducer, workers_active-counter)
+  end
+  defp preduce_inner(lst, acc, lenw, tlim, mapper, reducer, workers_active) when (workers_active >= 0) do
+    %{res: res, counter: counter} = receive_preduce([],0)
+    workers_active = workers_active - counter
+    preduce_init_workers(lst, lenw, mapper, tlim, workers_active)
+    |> preduce_inner(Enum.reduce(res, acc, reducer), lenw, tlim, mapper, reducer, tlim)
+  end
+
+
+  defp preduce_init_workers(lst, _, _, workers_active, workers_active), do: lst
+  defp preduce_init_workers(lst, lenw, mapper, tlim, workers_active) when (workers_active >= 0) and (tlim > workers_active) do
+    daddy = self
+    to_init = tlim - workers_active
+    Enum.reduce(1..to_init, lst, 
+      fn(_, lst) ->
+        {to_worker, rest} = Enum.split(lst, lenw)
+        spawn_link(fn() -> send(daddy, {:__00preduce00_result__, Enum.map(to_worker, mapper)} ) end)
+        rest
+      end)
+  end
+  defp receive_preduce(res, counter) do
+    receive do
+      {:__00preduce00_result__, lst} -> receive_preduce(lst++res, counter+1)
+    after
+      0 -> %{res: res, counter: counter}
+    end
+  end
 
 
 

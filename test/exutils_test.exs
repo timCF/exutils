@@ -34,6 +34,10 @@ defmodule ExutilsTest do
     assert 1000000 == Exutils.pmap(1..1000000, 1, &(&1+1)) |> length
   end
 
+  test "map_reduce" do
+    assert Exutils.pmap_lim(1..1000000, 100, 5000, &( &1*&1 )) |> Enum.reduce(0, &(&2+&1)) == Exutils.map_reduce(1..1000000, 0, 100, 5000, &( &1*&1 ), &(&2+&1))
+  end
+
   test "pmap_lim" do
     assert [2, 3, 4] == Exutils.pmap_lim([1,2,3], 2, 2, &(&1+1))
     assert [2, 4, 6] == Exutils.pmap_lim([1,2,3], 2, 2, fn(el) -> el * 2 end)
