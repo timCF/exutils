@@ -111,4 +111,16 @@ defmodule ExutilsTest do
     assert ["qwe", "1"] == Exutils.BinArith.maybe_to_int_normalize(["qwe", "1"])
 
   end
+
+  test "escape" do
+    re_q = ~r/(\\*')/
+    re_s = ~r/(\\+)$/
+
+    assert "\\'qwe\\'" == Exutils.Reg.escape("'qwe'", re_q, "\\")
+    assert "q\\'we\\\\" == Exutils.Reg.escape("q\\'we\\", re_s, "\\")
+    assert "qwe" == Exutils.Reg.escape("qwe", re_q, "\\")
+    assert "qwe" == Exutils.Reg.escape("qwe", re_s, "\\")
+    assert "qwe\\\\\\'123" == Exutils.Reg.escape("qwe\\\\\\'123", re_q, "\\")
+    assert "qwe\\\\\\'123" == Exutils.Reg.escape("qwe\\\\'123", re_q, "\\")
+  end
 end

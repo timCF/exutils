@@ -1,7 +1,7 @@
 defmodule Exutils do
 
   # pretty printing
-  defp give_tab(num \\ 0, res \\ "")
+  defp give_tab(num, res \\ "")
   defp give_tab(0, res) do
     res
   end
@@ -21,12 +21,8 @@ defmodule Exutils do
       res<>"\n"<>give_tab(tab)<>detail_show(el, tab+1)
       end)
   end
-  def detail_show(some, tab) when is_binary(some) do
-    some
-  end
-  def detail_show(some, tab) do
-    "#{inspect some}"
-  end
+  def detail_show(some, _) when is_binary(some), do: some
+  def detail_show(some, _), do: inspect(some)
   #transform any struct to map
   defp struct_to_map(str = %{}) do
     Map.delete(str, :__struct__)
@@ -59,7 +55,7 @@ defmodule Exutils do
     { String.to_integer(a), String.to_integer(b), String.to_integer(c) }
       |> :calendar.now_to_universal_time
   end
-  def timestamp_to_datetime( input = <<a :: binary-size(4), b :: binary-size(6),  c :: binary-size(3)>>) do
+  def timestamp_to_datetime( input = <<_ :: binary-size(4), _ :: binary-size(6),  _ :: binary-size(3)>>) do
     timestamp_to_datetime(input<>"000")
   end
   def timestamp_to_datetime(some) when (is_integer(some)) do
@@ -87,9 +83,7 @@ defmodule Exutils do
     end
   end
 
-  def prepare_verbose_datetime(input = {{y, m, d},{h, min, s}}) do
-    "#{y}-#{zero_pad(m)}-#{zero_pad(d)} #{zero_pad(h)}:#{zero_pad(min)}:#{zero_pad(s)}"
-  end
+  def prepare_verbose_datetime({{y, m, d},{h, min, s}}), do: "#{y}-#{zero_pad(m)}-#{zero_pad(d)} #{zero_pad(h)}:#{zero_pad(min)}:#{zero_pad(s)}"
 
   def make_verbose_datetime do
     :os.timestamp |> :calendar.now_to_universal_time |> prepare_verbose_datetime
@@ -124,6 +118,25 @@ defmodule Exutils do
     end
   end  
 
+  defmodule Reg do
+
+    @escape_reg ~r/(\\*')/
+    @escape_sym "\\"
+
+    def escape(bin, escape_reg \\ @escape_reg, escape_sym \\ @escape_sym) do
+      case Regex.match?(escape_reg, bin) do
+        false -> bin
+        true -> Regex.replace(escape_reg, bin, 
+            fn(_, x) ->
+              lst = String.codepoints(x)
+              case rem(length(lst), 2) do
+                0 -> Enum.join(lst)
+                1 -> Enum.join([escape_sym|lst])
+              end
+            end)
+      end
+    end
+  end
 
   defmodule SQL do
     def get_question_marks(num) when (is_integer(num) and (num > 0)) do
