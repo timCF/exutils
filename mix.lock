@@ -1,3 +1,5 @@
 %{"exactor": {:git, "git://github.com/sasa1977/exactor.git", "0467f8100bc735405d597dbf94996195eb31e0b6", []},
   "extask": {:git, "git://github.com/timCF/extask.git", "4164dddf3135c44623d77e9cba07324595353d6b", []},
-  "hashex": {:git, "git://github.com/timCF/hashex.git", "e657aac2f6dac000fa940b884e955cbd099009f4", []}}
+  "hashex": {:git, "git://github.com/timCF/hashex.git", "e657aac2f6dac000fa940b884e955cbd099009f4", []},
+  "quickrand": {:hex, :quickrand, "1.5.0"},
+  "uuid": {:git, "git://github.com/okeuday/uuid.git", "6bc38507460c821321d66504d3f8d6c1cdb57d98", []}}

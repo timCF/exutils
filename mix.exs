@@ -12,7 +12,7 @@ defmodule Exutils.Mixfile do
   #
   # Type `mix help compile.app` for more information
   def application do
-    [applications: [:logger, :hashex, :extask],
+    [applications: [:logger, :hashex, :extask, :uuid],
      mod: {Exutils, []}]
   end
 
@@ -28,7 +28,8 @@ defmodule Exutils.Mixfile do
   defp deps do
     [
       {:hashex, github: "timCF/hashex"},
-      {:extask, github: "timCF/extask"}
+      {:extask, github: "timCF/extask"},
+      {:uuid, github: "okeuday/uuid"}
     ]
   end
 end

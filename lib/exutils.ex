@@ -1,5 +1,7 @@
 defmodule Exutils do
 
+  def make_uuid, do: :uuid.get_v4(:strong) |> :uuid.uuid_to_string |> to_string
+
   # pretty printing
   defp give_tab(num, res \\ "")
   defp give_tab(0, res) do
