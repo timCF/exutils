@@ -1,5 +1,14 @@
 defmodule Exutils do
 
+  def get_os do
+    case Enum.filter([~r/DARWIN/, ~r/LINUX/, ~r/CYGWIN/], &(Regex.match?(&1, :os.cmd('uname -s') |> to_string |> String.strip |> String.upcase))) do
+      [~r/DARWIN/] -> "mac"
+      [~r/LINUX/] -> "linux"
+      [~r/CYGWIN/] -> "cygwin"
+      _ -> nil
+    end
+  end
+
   def make_uuid, do: :uuid.get_v4(:strong) |> :uuid.uuid_to_string |> to_string
 
   # pretty printing
