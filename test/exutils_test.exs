@@ -123,4 +123,8 @@ defmodule ExutilsTest do
     assert "qwe\\\\\\'123" == Exutils.Reg.escape("qwe\\\\\\'123", re_q, "\\")
     assert "qwe\\\\\\'123" == Exutils.Reg.escape("qwe\\\\'123", re_q, "\\")
   end
+
+  test "process_items_pack" do
+    assert [3,3,1] == Exutils.process_items_pack([1,2,3,4,5,6,7],3,fn(els) -> length(els) end)
+  end
 end

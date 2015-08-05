@@ -1,5 +1,12 @@
 defmodule Exutils do
 
+  def process_items_pack(lst,num,lambda,result \\ [])
+  def process_items_pack([],_,_,result), do: Enum.reverse(result)
+  def process_items_pack(lst,num,lambda,result) when (is_list(lst) and is_integer(num) and (num > 0) and is_function(lambda,1)) do
+    {todo,rest} = Enum.split(lst,num)
+    process_items_pack(rest,num,lambda,[lambda.(todo)|result])
+  end
+
   def get_os do
     case Enum.filter([~r/DARWIN/, ~r/LINUX/, ~r/CYGWIN/], &(Regex.match?(&1, :os.cmd('uname -s') |> to_string |> String.strip |> String.upcase))) do
       [~r/DARWIN/] -> "mac"
