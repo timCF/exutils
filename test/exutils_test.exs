@@ -127,4 +127,12 @@ defmodule ExutilsTest do
   test "process_items_pack" do
     assert [3,3,1] == Exutils.process_items_pack([1,2,3,4,5,6,7],3,fn(els) -> length(els) end)
   end
+
+  use Exutils.Math
+  test "math" do
+    assert 10 == sum([1,2,8,-1,0])
+    assert -10 == mult([1,2,5,-1])
+    assert 0 == mult([1,2,5,0])
+  end
+
 end
