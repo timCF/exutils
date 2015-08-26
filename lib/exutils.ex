@@ -7,6 +7,13 @@ defmodule Exutils do
     process_items_pack(rest,num,lambda,[lambda.(todo)|result])
   end
 
+  def each_pack([], _, _), do: :ok
+  def each_pack(lst, num, lambda) do
+    {todo,rest} = Enum.split(lst,num)
+    lambda.(todo)
+    each_pack(rest, num, lambda)
+  end
+
   def get_os do
     case Enum.filter([~r/DARWIN/, ~r/LINUX/, ~r/CYGWIN/], &(Regex.match?(&1, :os.cmd('uname -s') |> to_string |> String.strip |> String.upcase))) do
       [~r/DARWIN/] -> "mac"
