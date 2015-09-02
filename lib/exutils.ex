@@ -1,5 +1,7 @@
 defmodule Exutils do
 
+  @greg_epoche :calendar.datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
+
   def process_items_pack(lst,num,lambda,result \\ [])
   def process_items_pack([],_,_,result), do: Enum.reverse(result)
   def process_items_pack(lst,num,lambda,result) when (is_list(lst) and is_integer(num) and (num > 0) and is_function(lambda,1)) do
@@ -74,6 +76,10 @@ defmodule Exutils do
   end
   def get_date do
     System.cmd("date") |> String.strip
+  end
+
+  def unixtime_to_datetime(int) when (is_integer(int) and (int >= 0)) do
+    :calendar.gregorian_seconds_to_datetime(@greg_epoche + int)
   end
 
   def timestamp_to_datetime(<<a :: binary-size(4), b :: binary-size(6),  c :: binary-size(6)>>) do
