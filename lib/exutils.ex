@@ -286,12 +286,12 @@ defmodule Exutils do
   
   
   
-  defmacro safe body do
+  defmacro safe(body, ttl \\ :infinity) do
     quote location: :keep do
       case ExTask.run( fn() -> unquote(body) end )
-          |> ExTask.await(:infinity) do
+          |> ExTask.await(unquote(ttl)) do
         {:result, res} -> res
-        error -> error
+        error -> {:error, error}
       end
     end
   end
