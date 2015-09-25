@@ -295,6 +295,27 @@ defmodule Exutils do
       end
     end
   end
+
+  def retry(lambda, predicate, limit \\ 100, ttl \\ 100, attempt \\ 0)
+  def retry(lambda, predicate, :infinity, ttl, attempt) do
+    res = lambda.()
+    case predicate.(res) do
+      true -> res
+      false -> 
+        :timer.sleep(ttl)
+        retry(lambda, predicate, :infinity, ttl, attempt)
+    end
+  end
+  def retry(lambda, _, limit, _, attempt) when (attempt > limit), do: lambda.()
+  def retry(lambda, predicate, limit, ttl, attempt) when is_integer(limit) do
+    res = lambda.()
+    case predicate.(res) do
+      true -> res
+      false -> 
+        :timer.sleep(ttl)
+        retry(lambda, predicate, limit, ttl, attempt + 1)
+    end
+  end
   
   def pmap_lim([], _, _, _), do: []
   def pmap_lim(lst, num, threads_limit, func) when ((threads_limit > 0) and (num > 0)) do 

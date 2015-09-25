@@ -135,4 +135,9 @@ defmodule ExutilsTest do
     assert 0 == mult([1,2,5,0])
   end
 
+  test "retry" do
+    assert 1 == Exutils.retry( fn() -> :random.uniform(25) end , &(&1 == 1) , :infinity )
+    assert 2 == Exutils.retry( fn() -> 2 end , &(&1 == 1) , 10 )
+  end
+
 end
