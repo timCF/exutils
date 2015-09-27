@@ -74,9 +74,7 @@ defmodule Exutils do
   def priv_dir(name) do
       :erlang.list_to_binary(:code.priv_dir(name))
   end
-  def get_date do
-    System.cmd("date") |> String.strip
-  end
+  def get_date, do: :os.cmd('date') |> to_string |> String.strip
 
   def unixtime_to_datetime(int) when (is_integer(int) and (int >= 0)) do
     :calendar.gregorian_seconds_to_datetime(@greg_epoche + int)
