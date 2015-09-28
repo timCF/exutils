@@ -285,6 +285,14 @@ defmodule Exutils do
     end
   end
 
+  defmacro tc(body, callback) do
+    quote location: :keep do
+      {time, res} = :timer.tc(fn() -> unquote(body) end)
+      unquote(callback).(time)
+      res
+    end
+  end
+
   def retry(lambda, predicate, limit \\ 100, ttl \\ 100, attempt \\ 0)
   def retry(lambda, predicate, :infinity, ttl, attempt) do
     res = lambda.()

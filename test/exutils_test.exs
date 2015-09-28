@@ -140,4 +140,12 @@ defmodule ExutilsTest do
     assert 2 == Exutils.retry( fn() -> 2 end , &(&1 == 1) , 10 )
   end
 
+  test "tc" do
+    assert :qwe == (
+      IO.puts("\nhello tc ?")
+      :timer.sleep(1000)
+      :qwe
+    ) |> Exutils.tc(fn(time) -> IO.puts("hello tc #{time}\n") end)
+  end
+
 end
