@@ -2,6 +2,14 @@ defmodule Exutils do
 
   @greg_epoche :calendar.datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 
+  @type date :: {non_neg_integer, non_neg_integer, non_neg_integer}
+  @type datetime :: {date, date}
+
+  ####################
+  ### useful funcs ###
+  ####################
+
+  @spec process_items_pack(Enum.t, non_neg_integer, (Enum.t -> any), Enum.t) :: Enum.t
   def process_items_pack(lst,num,lambda,result \\ [])
   def process_items_pack([],_,_,result), do: Enum.reverse(result)
   def process_items_pack(lst,num,lambda,result) when (is_list(lst) and is_integer(num) and (num > 0) and is_function(lambda,1)) do
@@ -9,6 +17,7 @@ defmodule Exutils do
     process_items_pack(rest,num,lambda,[lambda.(todo)|result])
   end
 
+  @spec each_pack(Enum.t, non_neg_integer, (Enum.t -> any)) :: :ok
   def each_pack([], _, _), do: :ok
   def each_pack(lst, num, lambda) do
     {todo,rest} = Enum.split(lst,num)
@@ -16,6 +25,7 @@ defmodule Exutils do
     each_pack(rest, num, lambda)
   end
 
+  @spec get_os :: String.t | nil
   def get_os do
     case Enum.filter([~r/DARWIN/, ~r/LINUX/, ~r/CYGWIN/], &(Regex.match?(&1, :os.cmd('uname -s') |> to_string |> String.strip |> String.upcase))) do
       [~r/DARWIN/] -> "mac"
@@ -25,72 +35,73 @@ defmodule Exutils do
     end
   end
 
+  @spec make_uuid :: String.t
   def make_uuid, do: :uuid.get_v4(:strong) |> :uuid.uuid_to_string |> to_string
 
+  ####################
+  ### legacy shits ###
+  ####################
+
   # pretty printing
+  @spec give_tab(non_neg_integer, String.t) :: String.t
   defp give_tab(num, res \\ "")
-  defp give_tab(0, res) do
-    res
-  end
-  defp give_tab(tab, res) do
-    give_tab(tab-1, res<>"\t")
-  end
+  defp give_tab(0, res), do: res
+  defp give_tab(tab, res), do: give_tab(tab-1, res<>"\t")
+  
+  @spec detail_show(any, non_neg_integer) :: String.t
   def detail_show(some, tab \\ 0)
   def detail_show(map, tab) when is_map(map) do
-    struct_to_map(map)
-      |> Dict.to_list
-        |> Enum.reduce("", fn({k, v}, res) ->
-            res<>"\n"<>give_tab(tab)<>"#{inspect k}: "<>detail_show(v, tab+1)
-          end)
+    maybe_struct_to_map(map)
+    |> Dict.to_list
+    |> Enum.reduce("", fn({k, v}, res) ->
+        res<>"\n"<>give_tab(tab)<>"#{inspect k}: "<>detail_show(v, tab+1)
+    end)
   end
   def detail_show(lst, tab) when is_list(lst) do
     Enum.reduce(lst, "", fn(el, res) ->
       res<>"\n"<>give_tab(tab)<>detail_show(el, tab+1)
-      end)
+    end)
   end
   def detail_show(some, _) when is_binary(some), do: some
   def detail_show(some, _), do: inspect(some)
   #transform any struct to map
-  defp struct_to_map(str = %{}) do
+  @spec maybe_struct_to_map(any) :: any 
+  defp maybe_struct_to_map(str = %{}) do
     Map.delete(str, :__struct__)
-      |> Dict.to_list
-        |> Enum.reduce(%{}, fn({k, v}, res) ->
-          Dict.put(res, k, struct_to_map(v))
-        end)
+    |> Dict.to_list
+    |> Enum.reduce(%{}, fn({k, v}, res) ->
+          Dict.put(res, k, maybe_struct_to_map(v))
+    end)
   end
-  defp struct_to_map(some_else) do
-    some_else
-  end
+  defp maybe_struct_to_map(some_else), do: some_else
 
   # some special funcs
+  @spec makestamp :: non_neg_integer
   def makestamp do
     {a, b, c} = :os.timestamp
-    a*1000000000 + b*1000 + round( c / 1000)
+    a*1000000000 + b*1000 + div(c,1000)
   end
+  @spec makeid :: non_neg_integer
   def makeid do
     {a, b, c} = :erlang.now
     a*1000000000000 + b*1000000 + c
   end
-  def priv_dir(name) do
-      :erlang.list_to_binary(:code.priv_dir(name))
-  end
+  @spec priv_dir(atom) :: String.t
+  def priv_dir(name), do: :code.priv_dir(name) |> :erlang.list_to_binary
+  @spec get_date :: String.t
   def get_date, do: :os.cmd('date') |> to_string |> String.strip
 
-  def unixtime_to_datetime(int) when (is_integer(int) and (int >= 0)) do
-    :calendar.gregorian_seconds_to_datetime(@greg_epoche + int)
-  end
-
+  @spec unixtime_to_datetime(non_neg_integer) :: datetime
+  def unixtime_to_datetime(int) when (is_integer(int) and (int >= 0)), do: :calendar.gregorian_seconds_to_datetime(@greg_epoche + int)
+  @spec timestamp_to_datetime(non_neg_integer | String.t) :: datetime
   def timestamp_to_datetime(<<a :: binary-size(4), b :: binary-size(6),  c :: binary-size(6)>>) do
-    { String.to_integer(a), String.to_integer(b), String.to_integer(c) }
-      |> :calendar.now_to_universal_time
+    {String.to_integer(a), String.to_integer(b), String.to_integer(c)}
+    |> :calendar.now_to_universal_time
   end
-  def timestamp_to_datetime( input = <<_ :: binary-size(4), _ :: binary-size(6),  _ :: binary-size(3)>>) do
-    timestamp_to_datetime(input<>"000")
-  end
-  def timestamp_to_datetime(some) when (is_integer(some)) do
-    timestamp_to_datetime(to_string(some))
-  end
+  def timestamp_to_datetime( input = <<_ :: binary-size(4), _ :: binary-size(6),  _ :: binary-size(3)>>), do: timestamp_to_datetime(input<>"000")
+  def timestamp_to_datetime(some) when is_integer(some), do: timestamp_to_datetime(to_string(some))
 
+  @spec makecharid(non_neg_integer) :: String.t
   def makecharid(n \\ 30) do
     makeid |> to_string |> :crypto.rand_seed
     :crypto.strong_rand_bytes(n) |> :base64.encode
@@ -146,26 +157,6 @@ defmodule Exutils do
       Stream.map(args, &(make_arg(&1))) |> Enum.join("&")
     end
   end  
-
-  defmodule Reg do
-
-    @escape_reg ~r/(\\*')/
-    @escape_sym "\\"
-
-    def escape(bin, escape_reg \\ @escape_reg, escape_sym \\ @escape_sym) do
-      case Regex.match?(escape_reg, bin) do
-        false -> bin
-        true -> Regex.replace(escape_reg, bin, 
-            fn(_, x) ->
-              lst = String.codepoints(x)
-              case rem(length(lst), 2) do
-                0 -> Enum.join(lst)
-                1 -> Enum.join([escape_sym|lst])
-              end
-            end)
-      end
-    end
-  end
 
   defmodule SQL do
     def get_question_marks(num) when (is_integer(num) and (num > 0)) do
@@ -253,7 +244,7 @@ defmodule Exutils do
   end
 
 
-
+  @spec prepare_to_jsonify(map | list, map) :: map | list 
   def prepare_to_jsonify(subj, opts \\ %{})
   def prepare_to_jsonify(hash, opts) when (is_map(hash) or is_list(hash)) do
     hash = HashUtils.struct_degradation(hash)

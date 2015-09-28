@@ -2,10 +2,13 @@ defmodule Exutils.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :exutils,
+    [
+     app: :exutils,
      version: "0.0.1",
      #elixir: "~> 0.15.1",
-     deps: deps]
+     deps: deps,
+     dialyzer: [plt_add_deps: true]
+    ]
   end
 
   # Configuration for the OTP application
