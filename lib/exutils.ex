@@ -390,24 +390,10 @@ defmodule Exutils do
   	split_list_inner(rest, len, [el|res])	
   end
   
-  
-  def sha1_str(inp) when is_binary(inp) do
-    :crypto.hash(:sha, inp)
-    |> :erlang.binary_to_list
-    |> Enum.map(&([hex(div &1, 16), hex(rem &1, 16)]))
-    |> List.flatten
-    |> :erlang.list_to_binary
-  end
-  
-  def md5_str(inp) when is_binary(inp) do
-    :erlang.md5(inp)
-    |> :erlang.binary_to_list
-    |> Enum.map(&([hex(div &1, 16), hex(rem &1, 16)]))
-    |> List.flatten
-    |> :erlang.list_to_binary
-  end
-  defp hex(n) when (n < 10), do: ('0' |> List.first) + n
-  defp hex(n) when ((n>=10) and (n < 16)), do: ('a' |> List.first) + n - 10
+  @spec sha1_str(String.t) :: String.t
+  def sha1_str(inp) when is_binary(inp), do: (:crypto.hash(:sha, inp) |> Base.encode16([case: :lower]))
+  @spec md5_str(String.t) :: String.t
+  def md5_str(inp) when is_binary(inp), do: (:erlang.md5(inp) |> Base.encode16([case: :lower]))
 
   use Application
 
