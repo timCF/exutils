@@ -3,11 +3,15 @@ defmodule Exutils do
   @greg_epoche :calendar.datetime_to_gregorian_seconds({{1970,1,1},{0,0,0}})
 
   @type date :: {non_neg_integer, non_neg_integer, non_neg_integer}
-  @type datetime :: {date, date}
+  @type datetime :: {{non_neg_integer(),1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12,1..255},{byte(),byte(),byte()}}
 
   ####################
   ### useful funcs ###
   ####################
+
+  #
+  # pack - processing of items
+  #
 
   @spec process_items_pack(Enum.t, non_neg_integer, (Enum.t -> any), Enum.t) :: Enum.t
   def process_items_pack(lst,num,lambda,result \\ [])
@@ -25,9 +29,13 @@ defmodule Exutils do
     each_pack(rest, num, lambda)
   end
 
+  #
+  # some system funcs
+  #
+
   @spec get_os :: String.t | nil
   def get_os do
-    case Enum.filter([~r/DARWIN/, ~r/LINUX/, ~r/CYGWIN/], &(Regex.match?(&1, :os.cmd('uname -s') |> to_string |> String.strip |> String.upcase))) do
+    case Enum.filter([~r/DARWIN/, ~r/LINUX/, ~r/CYGWIN/], &(Regex.match?(&1, :os.cmd('uname -s') |> :erlang.list_to_binary |> String.strip |> String.upcase))) do
       [~r/DARWIN/] -> "mac"
       [~r/LINUX/] -> "linux"
       [~r/CYGWIN/] -> "cygwin"
@@ -37,6 +45,53 @@ defmodule Exutils do
 
   @spec make_uuid :: String.t
   def make_uuid, do: :uuid.get_v4(:strong) |> :uuid.uuid_to_string |> to_string
+
+  @spec priv_dir(atom) :: String.t
+  def priv_dir(name), do: :code.priv_dir(name) |> :erlang.list_to_binary
+
+  #
+  # funcs to operate with time
+  #
+
+  @spec zero_pad(String.t | integer) :: String.t
+  @spec zero_pad(String.t | integer, non_neg_integer) :: String.t
+  def zero_pad(string), do: zero_pad(string, 2)
+  def zero_pad(string, len) when is_integer(string), do: zero_pad(:erlang.integer_to_binary(string), len)
+  def zero_pad(string, len) when is_binary(string) do
+    case String.length(string) do
+      slen when slen >= len -> string
+      slen -> << String.duplicate("0", (len - slen))::binary, string::binary >>
+    end
+  end
+
+  @spec makestamp :: non_neg_integer
+  def makestamp do
+    {a, b, c} = :os.timestamp
+    a*1000000000 + b*1000 + div(c,1000)
+  end
+
+  @spec unixtime_to_datetime(non_neg_integer) :: datetime
+  def unixtime_to_datetime(int) when (is_integer(int) and (int >= 0)), do: :calendar.gregorian_seconds_to_datetime(@greg_epoche + int)
+  @spec timestamp_to_datetime(non_neg_integer | String.t) :: datetime
+  def timestamp_to_datetime(<<a :: binary-size(4), b :: binary-size(6),  c :: binary-size(6)>>) do
+    {String.to_integer(a), String.to_integer(b), String.to_integer(c)}
+    |> :calendar.now_to_universal_time
+  end
+  def timestamp_to_datetime( input = <<_ :: binary-size(4), _ :: binary-size(6),  _ :: binary-size(3)>>), do: timestamp_to_datetime(input<>"000")
+  def timestamp_to_datetime(some) when is_integer(some), do: (Integer.to_string(some) |> timestamp_to_datetime)
+
+  @spec prepare_verbose_datetime(datetime) :: String.t
+  def prepare_verbose_datetime({{y, m, d},{h, min, s}}), do: "#{y}-#{zero_pad(m)}-#{zero_pad(d)} #{zero_pad(h)}:#{zero_pad(min)}:#{zero_pad(s)}"
+  @spec make_verbose_datetime :: String.t
+  def make_verbose_datetime, do: (:os.timestamp |> :calendar.now_to_universal_time |> prepare_verbose_datetime)
+  @spec make_verbose_datetime(integer) :: String.t
+  def make_verbose_datetime(delta) do
+    (now_to_int(:os.timestamp) + delta)
+    |> int_to_now
+    |> :calendar.now_to_universal_time
+    |> prepare_verbose_datetime
+  end
+
 
   ####################
   ### legacy shits ###
@@ -75,35 +130,17 @@ defmodule Exutils do
   end
   defp maybe_struct_to_map(some_else), do: some_else
 
-  # some special funcs
-  @spec makestamp :: non_neg_integer
-  def makestamp do
-    {a, b, c} = :os.timestamp
-    a*1000000000 + b*1000 + div(c,1000)
-  end
   @spec makeid :: non_neg_integer
   def makeid do
-    {a, b, c} = :erlang.now
+    {a, b, c} = :erlang.timestamp
     a*1000000000000 + b*1000000 + c
   end
-  @spec priv_dir(atom) :: String.t
-  def priv_dir(name), do: :code.priv_dir(name) |> :erlang.list_to_binary
   @spec get_date :: String.t
-  def get_date, do: :os.cmd('date') |> to_string |> String.strip
-
-  @spec unixtime_to_datetime(non_neg_integer) :: datetime
-  def unixtime_to_datetime(int) when (is_integer(int) and (int >= 0)), do: :calendar.gregorian_seconds_to_datetime(@greg_epoche + int)
-  @spec timestamp_to_datetime(non_neg_integer | String.t) :: datetime
-  def timestamp_to_datetime(<<a :: binary-size(4), b :: binary-size(6),  c :: binary-size(6)>>) do
-    {String.to_integer(a), String.to_integer(b), String.to_integer(c)}
-    |> :calendar.now_to_universal_time
-  end
-  def timestamp_to_datetime( input = <<_ :: binary-size(4), _ :: binary-size(6),  _ :: binary-size(3)>>), do: timestamp_to_datetime(input<>"000")
-  def timestamp_to_datetime(some) when is_integer(some), do: timestamp_to_datetime(to_string(some))
+  def get_date, do: :os.cmd('date') |> :erlang.list_to_binary |> String.strip
 
   @spec makecharid(non_neg_integer) :: String.t
   def makecharid(n \\ 30) do
-    makeid |> to_string |> :crypto.rand_seed
+    makeid |> rem(100) |> :crypto.rand_bytes |> :crypto.rand_seed
     :crypto.strong_rand_bytes(n) |> :base64.encode
   end
   
@@ -112,33 +149,7 @@ defmodule Exutils do
   # some special funcs
   #
 
-  def zero_pad(string), do: zero_pad(string, 2)
-  def zero_pad(string, len) when is_integer(string) do
-    zero_pad(:erlang.integer_to_binary(string), len)
-  end
-  def zero_pad(string, len) when is_binary(string) do
-    case String.length(string) do
-      slen when slen >= len -> string
-      slen -> << String.duplicate("0", (len - slen))::binary, string::binary >>
-    end
-  end
-
-  def prepare_verbose_datetime({{y, m, d},{h, min, s}}), do: "#{y}-#{zero_pad(m)}-#{zero_pad(d)} #{zero_pad(h)}:#{zero_pad(min)}:#{zero_pad(s)}"
-
-  def make_verbose_datetime do
-    :os.timestamp |> :calendar.now_to_universal_time |> prepare_verbose_datetime
-  end
-
-  def make_verbose_datetime(delta) do
-    (now_to_int(:os.timestamp) + delta)
-      |> int_to_now
-          |> :calendar.now_to_universal_time
-              |> prepare_verbose_datetime
-  end
-
-  def now_to_int {f,s,t} do
-    f*1000000*1000000 + s*1000000 + t
-  end
+  def now_to_int({f,s,t}), do: (f*1000000*1000000 + s*1000000 + t)
 
   def int_to_now num do
     {
@@ -260,18 +271,10 @@ defmodule Exutils do
         Enum.map(hash, &(prepare_to_jsonify(&1, opts)))
     end
   end
-  def prepare_to_jsonify(some, _opts) when is_atom(some) do
-    to_string(some)
-  end
-  def prepare_to_jsonify(some, opts = %{tuple_values_to_lists: true}) when is_tuple(some) do
-    Tuple.to_list(some) |> Enum.map( &(prepare_to_jsonify(&1, opts)) )
-  end
-  def prepare_to_jsonify(some, opts) when is_tuple(some) do
-    raise "Exutils : can't jsonify tuples-in-values with these settings. #{inspect opts}"
-  end
-  def prepare_to_jsonify(some, _opts) do
-    some
-  end
+  def prepare_to_jsonify(some, _opts) when is_atom(some), do: Atom.to_string(some)
+  def prepare_to_jsonify(some, opts = %{tuple_values_to_lists: true}) when is_tuple(some), do: (Tuple.to_list(some) |> Enum.map(&(prepare_to_jsonify(&1, opts))))
+  def prepare_to_jsonify(some, opts) when is_tuple(some), do: (raise "Exutils : can't jsonify tuples-in-values with these settings. #{inspect opts}")
+  def prepare_to_jsonify(some, _opts), do: some
   
   
   
@@ -405,111 +408,6 @@ defmodule Exutils do
   end
   defp hex(n) when (n < 10), do: ('0' |> List.first) + n
   defp hex(n) when ((n>=10) and (n < 16)), do: ('a' |> List.first) + n - 10
-
-
-  defmodule BinArith do
-
-    @is_number_regexp ~r/^([-]?(([1-9](\d+)?)|0|((([1-9](\d+)?)|0)\.(\d+))))$/
-    @is_integer_regexp ~r/^([-]?(([1-9](\d+)?)|0))$/
-    @is_float_regexp ~r/^([-]?((([1-9](\d+)?)|0)\.(\d+)))$/
-
-    def parsable_number(bin) when is_binary(bin), do: Regex.match?(@is_number_regexp, bin)
-    def parsable_number(_), do: false
-
-    def parsable_integer(bin) when is_binary(bin), do: Regex.match?(@is_integer_regexp, bin)
-    def parsable_integer(_), do: false
-
-    def parsable_float(bin) when is_binary(bin), do: Regex.match?(@is_float_regexp, bin)
-    def parsable_float(_), do: false
-
-    #
-    # next public funcs work correctly only when parsable_number(bin) == true !!! (float | int)
-    #
-
-    def maybe_to_int_normalize(bin) when is_binary(bin) do
-      {sign, bin} = make_unsigned(bin)
-      case parsable_integer(bin) do
-        true -> "#{sign}#{bin}"
-        false ->
-          case String.strip(bin, ?0) |> String.split(".") do
-            ["", ""] -> "0"
-            ["", fl] -> "#{sign}0.#{fl}"
-            [int, ""] -> "#{sign}#{int}"
-            [int, fl] -> "#{sign}#{int}.#{fl}"
-          end
-      end
-    end
-    def maybe_to_int_normalize(some), do: some
-
-    def split_number(bin) when is_binary(bin) do
-      {sign, bin} = make_unsigned(bin)
-      case String.split(bin, ".") do
-        [one] -> ["#{sign}#{one}", "0"]
-        [one, two] -> ["#{sign}#{one}", "#{sign}0.#{two}"]
-      end
-    end
-
-    def mult_10(bin, dig_up) when (is_binary(bin) and is_integer(dig_up) and (dig_up > 0)) do
-      {sign, bin} = make_unsigned(bin)
-      case parsable_integer(bin) do
-        true -> sign<>mult_10_int_unsigned(bin, dig_up)
-        false -> sign<>mult_10_float_unsigned(bin, dig_up)
-      end
-    end
-
-    def div_10(bin, dig_down) when (is_binary(bin) and is_integer(dig_down) and (dig_down > 0)) do
-      {sign, bin} = make_unsigned(bin)
-      case parsable_integer(bin) do
-        true -> sign<>div_10_int_unsigned(bin, dig_down)
-        false -> sign<>div_10_float_unsigned(bin, dig_down)
-      end
-    end
-
-    #
-    # priv funcs
-    #
-
-    defp make_unsigned(<<"-", unsigned::binary>>), do: {"-",unsigned}
-    defp make_unsigned(some), do: {"", some}
-
-    defp mult_10_int_unsigned("0", _), do: "0"
-    defp mult_10_int_unsigned(bin, dig_up), do: "#{bin}#{Stream.map(1..dig_up, fn(_) -> "0" end ) |> Enum.join}"
-    defp mult_10_float_unsigned(bin, dig_up) do
-      [int, fl] = String.split(bin, ".")
-      fl = "#{fl}#{Stream.map(1..dig_up, fn(_) -> "0" end ) |> Enum.join}"
-      {to_add, rest_fl} = String.split_at(fl, dig_up)
-      case String.strip("#{int}#{to_add}.#{rest_fl}", ?0) |> String.split(".") do
-        ["", ""] -> "0"
-        ["", fl] -> "0.#{fl}"
-        [int, ""] -> int
-        [int, fl] -> "#{int}.#{fl}"
-      end
-    end
-
-    defp div_10_int_unsigned("0", _), do: "0"
-    defp div_10_int_unsigned(bin, dig_down) do
-      {int, fl} = String.split_at("#{Stream.map(1..dig_down, fn(_) -> "0" end ) |> Enum.join}#{bin}", -1 * dig_down)
-      case String.strip("#{int}.#{fl}", ?0) |> String.split(".") do
-        ["", ""] -> "0"
-        ["", fl] -> "0.#{fl}"
-        [int, ""] -> int
-        [int, fl] -> "#{int}.#{fl}"
-      end
-    end
-    defp div_10_float_unsigned(bin, dig_down) do
-      [int, old_fl] = String.split(bin, ".")
-      {int, fl} = String.split_at("#{Stream.map(1..dig_down, fn(_) -> "0" end ) |> Enum.join}#{int}", -1 * dig_down)
-      case String.strip("#{int}.#{fl}#{old_fl}", ?0) |> String.split(".") do
-        ["", ""] -> "0"
-        ["", fl] -> "0.#{fl}"
-        [int, ""] -> int
-        [int, fl] -> "#{int}.#{fl}"
-      end
-    end
-
-
-  end
-
 
   use Application
 
