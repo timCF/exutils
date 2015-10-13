@@ -1,3 +1,7 @@
+####################
+### legacy shits ###
+####################
+
 defmodule Exutils.SQL do
 
   @type stringifible :: [String.t | atom | number]

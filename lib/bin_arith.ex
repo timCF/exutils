@@ -1,3 +1,7 @@
+####################
+### useful funcs ###
+####################
+
 defmodule Exutils.BinArith do
 
   @is_number_regexp ~r/^([-]?(([1-9](\d+)?)|0|((([1-9](\d+)?)|0)\.(\d+))))$/

@@ -1,3 +1,7 @@
+####################
+### useful funcs ###
+####################
+
 defmodule Exutils.Reg do
 
   @escape_reg ~r/(\\*')/

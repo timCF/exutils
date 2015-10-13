@@ -5,9 +5,17 @@ defmodule Exutils do
   @type date :: {non_neg_integer, non_neg_integer, non_neg_integer}
   @type datetime :: {{non_neg_integer(),1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12,1..255},{byte(),byte(),byte()}}
 
+
+
+
+
   ####################
   ### useful funcs ###
   ####################
+
+
+
+
 
   #
   # pack - processing of items
@@ -104,9 +112,93 @@ defmodule Exutils do
     }
   end
 
+  defmacro safe(body, ttl \\ :infinity) when ((is_integer(ttl) and (ttl > 0)) or (ttl == :infinity)) do
+    quote location: :keep do
+      case ExTask.run( fn() -> unquote(body) end )
+          |> ExTask.await(unquote(ttl)) do
+        {:result, res} -> res
+        error -> {:error, error}
+      end
+    end
+  end
+
+  defmacro tc(body, callback) do
+    quote location: :keep do
+      {time, res} = :timer.tc(fn() -> unquote(body) end)
+      unquote(callback).(time)
+      res
+    end
+  end
+
+  @spec retry((() -> any), ((any) -> boolean), pos_integer | :infinity, pos_integer, non_neg_integer) :: any
+  def retry(lambda, predicate, limit \\ 100, ttl \\ 100, attempt \\ 0)
+  def retry(lambda, predicate, :infinity, ttl, attempt) do
+    res = lambda.()
+    case predicate.(res) do
+      true -> res
+      false -> 
+        :timer.sleep(ttl)
+        retry(lambda, predicate, :infinity, ttl, attempt)
+    end
+  end
+  def retry(lambda, _, limit, _, attempt) when (attempt > limit), do: lambda.()
+  def retry(lambda, predicate, limit, ttl, attempt) when is_integer(limit) do
+    res = lambda.()
+    case predicate.(res) do
+      true -> res
+      false -> 
+        :timer.sleep(ttl)
+        retry(lambda, predicate, limit, ttl, attempt + 1)
+    end
+  end
+
+  @spec pmap_lim([any], non_neg_integer, non_neg_integer, ((any) -> any)) :: [any]
+  def pmap_lim([], _, _, _), do: []
+  def pmap_lim(lst, num, threads_limit, func) when ((threads_limit > 0) and (num > 0)) do 
+    lst = Enum.to_list(lst)
+    case (length(lst) / num) > threads_limit do
+      true -> 
+        case round(length(lst) / threads_limit) do
+          0 -> pmap(lst, 1, func)
+          int -> pmap(lst, int, func)
+        end
+      false -> 
+        pmap(lst, num, func)
+    end
+  end
+
+  @spec pmap([any], non_neg_integer, ((any) -> any)) :: [any]
+  def pmap([], _, _), do: []
+  def pmap(lst, num, func) when (num > 0) do
+      :rpc.pmap({__MODULE__, :pmap_proxy}, [func], split_list_pmap(lst, num, []))
+      |> :lists.reverse
+      |> :lists.concat
+  end
+  @spec split_list_pmap([any], non_neg_integer, [any]) :: [any]
+  defp split_list_pmap(lst, num, acc) do
+    case Enum.split(lst, num) do
+      {el, []} -> [el|acc]
+      {el, rest} -> split_list_pmap(rest, num, [el|acc])
+    end
+  end
+  @spec pmap_proxy([any], ((any) -> any)) :: [any]
+  def pmap_proxy(lst, func), do: Enum.map(lst, func)
+
+
+
+
+
+
+
   ####################
   ### legacy shits ###
   ####################
+
+
+
+
+
+
 
   # pretty printing
   @spec give_tab(non_neg_integer, String.t) :: String.t
@@ -155,12 +247,6 @@ defmodule Exutils do
     :crypto.strong_rand_bytes(n) |> :base64.encode
   end
   
-
-  #
-  # some special funcs
-  #
-  
-  
   defmodule HTTP do
     def make_arg({key, value}) do
       "#{key}=#{value |> to_string |> URI.encode_www_form}"
@@ -190,79 +276,11 @@ defmodule Exutils do
   def prepare_to_jsonify(some, opts = %{tuple_values_to_lists: true}) when is_tuple(some), do: (Tuple.to_list(some) |> Enum.map(&(prepare_to_jsonify(&1, opts))))
   def prepare_to_jsonify(some, opts) when is_tuple(some), do: (raise "Exutils : can't jsonify tuples-in-values with these settings. #{inspect opts}")
   def prepare_to_jsonify(some, _opts), do: some
-  
-  
-  
-  defmacro safe(body, ttl \\ :infinity) do
-    quote location: :keep do
-      case ExTask.run( fn() -> unquote(body) end )
-          |> ExTask.await(unquote(ttl)) do
-        {:result, res} -> res
-        error -> {:error, error}
-      end
-    end
-  end
 
-  defmacro tc(body, callback) do
-    quote location: :keep do
-      {time, res} = :timer.tc(fn() -> unquote(body) end)
-      unquote(callback).(time)
-      res
-    end
-  end
-
-  def retry(lambda, predicate, limit \\ 100, ttl \\ 100, attempt \\ 0)
-  def retry(lambda, predicate, :infinity, ttl, attempt) do
-    res = lambda.()
-    case predicate.(res) do
-      true -> res
-      false -> 
-        :timer.sleep(ttl)
-        retry(lambda, predicate, :infinity, ttl, attempt)
-    end
-  end
-  def retry(lambda, _, limit, _, attempt) when (attempt > limit), do: lambda.()
-  def retry(lambda, predicate, limit, ttl, attempt) when is_integer(limit) do
-    res = lambda.()
-    case predicate.(res) do
-      true -> res
-      false -> 
-        :timer.sleep(ttl)
-        retry(lambda, predicate, limit, ttl, attempt + 1)
-    end
-  end
-  
-  def pmap_lim([], _, _, _), do: []
-  def pmap_lim(lst, num, threads_limit, func) when ((threads_limit > 0) and (num > 0)) do 
-    lst = Enum.to_list(lst)
-    case (length(lst) / num) > threads_limit do
-      true -> 
-        case round(length(lst) / threads_limit) do
-          0 -> pmap(lst, 1, func)
-          int -> pmap(lst, int, func)
-        end
-      false -> 
-        pmap(lst, num, func)
-    end
-  end
-
-  def pmap([], _, _), do: []
-  def pmap(lst, num, func) when (num > 0) do
-      :rpc.pmap({__MODULE__, :pmap_proxy}, [func], split_list_pmap(lst, num, []))
-      |> :lists.reverse
-      |> :lists.concat
-  end
-  defp split_list_pmap(lst, num, acc) do
-    case Enum.split(lst, num) do
-      {el, []} -> [el|acc]
-      {el, rest} -> split_list_pmap(rest, num, [el|acc])
-    end
-  end
-  def pmap_proxy(lst, func), do: Enum.map(lst, func)
-
-
+  @spec map_reduce([any], any, non_neg_integer, non_neg_integer, ((any) -> any), ((any, any) -> any)) :: any
   def map_reduce(lst, acc, lenw, tlim, mapper, reducer), do: preduce_inner(lst, acc, lenw, tlim, mapper, reducer, 0)
   
+  @spec preduce_inner([any], any, non_neg_integer, non_neg_integer, ((any) -> any), ((any, any) -> any), non_neg_integer) :: any
   defp preduce_inner([], acc, _, _, _, _, 0), do: acc
   defp preduce_inner([], acc, lenw, tlim, mapper, reducer, workers_active) when (workers_active > 0) do
     %{counter: counter, acc: acc} = receive_preduce(acc,0,reducer)
@@ -275,7 +293,7 @@ defmodule Exutils do
     |> preduce_inner(acc, lenw, tlim, mapper, reducer, tlim)
   end
 
-
+  @spec preduce_init_workers([any], non_neg_integer, ((any) -> any), non_neg_integer, non_neg_integer) :: [any]
   defp preduce_init_workers(lst, _, _, workers_active, workers_active), do: lst
   defp preduce_init_workers(lst, lenw, mapper, tlim, workers_active) when (workers_active >= 0) and (tlim > workers_active) do
     daddy = self
@@ -287,6 +305,7 @@ defmodule Exutils do
         rest
       end)
   end
+  @spec receive_preduce(any, non_neg_integer, ((any, any) -> any)) :: %{acc: any, counter: non_neg_integer}
   defp receive_preduce(acc, counter, reducer) do
     receive do
       {:__00preduce00_result__, lst} -> Enum.reduce(lst, acc, reducer) |> receive_preduce(counter+1, reducer)
@@ -296,9 +315,10 @@ defmodule Exutils do
   end
 
 
-
+  @spec split_list([any], pos_integer) :: [[any]]
   def split_list(lst, len) when (is_list(lst) and is_integer(len) and (len > 0)), do: split_list_inner(lst, len, []) |> :lists.reverse
 
+  @spec split_list_inner([any], pos_integer, [[any]]) :: [[any]]
   def split_list_inner([], len, res) when (is_integer(len) and (len > 0)), do: res
   def split_list_inner(lst, len, res) when (is_list(lst) and is_integer(len) and (len > 0)) do
   	{el, rest} = Enum.split(lst, len)
