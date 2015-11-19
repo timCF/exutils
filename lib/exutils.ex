@@ -29,12 +29,16 @@ defmodule Exutils do
     process_items_pack(rest,num,lambda,[lambda.(todo)|result])
   end
 
-  @spec each_pack(Enum.t, non_neg_integer, (Enum.t -> any)) :: :ok
-  def each_pack([], _, _), do: :ok
+  @spec each_pack(Enum.t, pos_integer, (Enum.t -> any)) :: :ok
   def each_pack(lst, num, lambda) do
-    {todo,rest} = Enum.split(lst,num)
-    lambda.(todo)
-    each_pack(rest, num, lambda)
+	lst = Enum.to_list(lst)
+	Stream.chunk(lst, num)
+	|> Enum.each(&(Enum.to_list(&1) |> lambda.()))
+	case Enum.drop(lst, num * div(length(lst), num)) do
+		[] -> :ok
+		rest = [_|_] -> lambda.(rest)
+	end
+	:ok
   end
 
   #
@@ -136,7 +140,7 @@ defmodule Exutils do
     res = lambda.()
     case predicate.(res) do
       true -> res
-      false -> 
+      false ->
         :timer.sleep(ttl)
         retry(lambda, predicate, :infinity, ttl, attempt)
     end
@@ -146,7 +150,7 @@ defmodule Exutils do
     res = lambda.()
     case predicate.(res) do
       true -> res
-      false -> 
+      false ->
         :timer.sleep(ttl)
         retry(lambda, predicate, limit, ttl, attempt + 1)
     end
@@ -154,15 +158,15 @@ defmodule Exutils do
 
   @spec pmap_lim([any], non_neg_integer, non_neg_integer, ((any) -> any)) :: [any]
   def pmap_lim([], _, _, _), do: []
-  def pmap_lim(lst, num, threads_limit, func) when ((threads_limit > 0) and (num > 0)) do 
+  def pmap_lim(lst, num, threads_limit, func) when ((threads_limit > 0) and (num > 0)) do
     lst = Enum.to_list(lst)
     case (length(lst) / num) > threads_limit do
-      true -> 
+      true ->
         case round(length(lst) / threads_limit) do
           0 -> pmap(lst, 1, func)
           int -> pmap(lst, int, func)
         end
-      false -> 
+      false ->
         pmap(lst, num, func)
     end
   end
@@ -205,7 +209,7 @@ defmodule Exutils do
   defp give_tab(num, res \\ "")
   defp give_tab(0, res), do: res
   defp give_tab(tab, res), do: give_tab(tab-1, res<>"\t")
-  
+
   @spec detail_show(any, non_neg_integer) :: String.t
   def detail_show(some, tab \\ 0)
   def detail_show(map, tab) when is_map(map) do
@@ -223,7 +227,7 @@ defmodule Exutils do
   def detail_show(some, _) when is_binary(some), do: some
   def detail_show(some, _), do: inspect(some)
   #transform any struct to map
-  @spec maybe_struct_to_map(any) :: any 
+  @spec maybe_struct_to_map(any) :: any
   defp maybe_struct_to_map(str = %{}) do
     Map.delete(str, :__struct__)
     |> Dict.to_list
@@ -246,7 +250,7 @@ defmodule Exutils do
     makeid |> rem(100) |> :crypto.rand_bytes |> :crypto.rand_seed
     :crypto.strong_rand_bytes(n) |> :base64.encode
   end
-  
+
   defmodule HTTP do
     def make_arg({key, value}) do
       "#{key}=#{value |> to_string |> URI.encode_www_form}"
@@ -254,14 +258,14 @@ defmodule Exutils do
     def make_args(args) do
       Stream.map(args, &(make_arg(&1))) |> Enum.join("&")
     end
-  end  
+  end
 
-  @spec prepare_to_jsonify(map | list, map) :: map | list 
+  @spec prepare_to_jsonify(map | list, map) :: map | list
   def prepare_to_jsonify(subj, opts \\ %{})
   def prepare_to_jsonify(hash, opts) when (is_map(hash) or is_list(hash)) do
     hash = HashUtils.struct_degradation(hash)
     case HashUtils.is_hash?(hash) and (hash != []) do
-      true -> 
+      true ->
         if  HashUtils.keys(hash)
               |> Enum.any?(&( not(is_atom(&1) or is_binary(&1) or is_number(&1)) )) do
           raise "Exutils : can't jsonify hash. Keys must be atom, binary or number. #{inspect hash}"
@@ -279,7 +283,7 @@ defmodule Exutils do
 
   @spec map_reduce([any], any, non_neg_integer, non_neg_integer, ((any) -> any), ((any, any) -> any)) :: any
   def map_reduce(lst, acc, lenw, tlim, mapper, reducer), do: preduce_inner(lst, acc, lenw, tlim, mapper, reducer, 0)
-  
+
   @spec preduce_inner([any], any, non_neg_integer, non_neg_integer, ((any) -> any), ((any, any) -> any), non_neg_integer) :: any
   defp preduce_inner([], acc, _, _, _, _, 0), do: acc
   defp preduce_inner([], acc, lenw, tlim, mapper, reducer, workers_active) when (workers_active > 0) do
@@ -298,7 +302,7 @@ defmodule Exutils do
   defp preduce_init_workers(lst, lenw, mapper, tlim, workers_active) when (workers_active >= 0) and (tlim > workers_active) do
     daddy = self
     to_init = tlim - workers_active
-    Enum.reduce(1..to_init, lst, 
+    Enum.reduce(1..to_init, lst,
       fn(_, lst) ->
         {to_worker, rest} = Enum.split(lst, lenw)
         spawn_link(fn() -> send(daddy, {:__00preduce00_result__, Enum.map(to_worker, mapper)} ) end)
@@ -322,9 +326,9 @@ defmodule Exutils do
   def split_list_inner([], len, res) when (is_integer(len) and (len > 0)), do: res
   def split_list_inner(lst, len, res) when (is_list(lst) and is_integer(len) and (len > 0)) do
   	{el, rest} = Enum.split(lst, len)
-  	split_list_inner(rest, len, [el|res])	
+  	split_list_inner(rest, len, [el|res])
   end
-  
+
   @spec sha1_str(String.t) :: String.t
   def sha1_str(inp) when is_binary(inp), do: (:crypto.hash(:sha, inp) |> Base.encode16([case: :lower]))
   @spec md5_str(String.t) :: String.t
