@@ -116,7 +116,7 @@ defmodule Exutils do
     }
   end
 
-  defmacro safe(body, ttl \\ :infinity) when ((is_integer(ttl) and (ttl > 0)) or (ttl == :infinity)) do
+  defmacro safe(body, ttl \\ :infinity) do
     quote location: :keep do
       case ExTask.run( fn() -> unquote(body) end )
           |> ExTask.await(unquote(ttl)) do
