@@ -116,6 +116,18 @@ defmodule Exutils do
     }
   end
 
+	defmacro try_catch(body) do
+		quote location: :keep do
+			try do
+				unquote(body)
+			catch
+				error -> {:error, error}
+			rescue
+				error -> {:error, error}
+			end
+		end
+	end
+
   defmacro safe(body, ttl \\ :infinity) do
     quote location: :keep do
       case ExTask.run( fn() -> unquote(body) end )

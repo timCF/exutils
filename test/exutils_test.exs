@@ -148,4 +148,9 @@ defmodule ExutilsTest do
     ) |> Exutils.tc(fn(time) -> IO.puts("hello tc #{time}\n") end)
   end
 
+  test "try_catch" do
+  	assert 2 == (1+1) |> Exutils.try_catch
+	assert :error == (1 / 0) |> Exutils.try_catch |> elem(0)
+  end
+
 end
