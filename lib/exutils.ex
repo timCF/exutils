@@ -236,7 +236,6 @@ defmodule Exutils do
       res<>"\n"<>give_tab(tab)<>detail_show(el, tab+1)
     end)
   end
-  def detail_show(some, _) when is_binary(some), do: some
   def detail_show(some, _), do: inspect(some)
   #transform any struct to map
   @spec maybe_struct_to_map(any) :: any
