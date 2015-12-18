@@ -290,7 +290,14 @@ defmodule Exutils do
   def prepare_to_jsonify(some, _opts) when is_atom(some), do: Atom.to_string(some)
   def prepare_to_jsonify(some, opts = %{tuple_values_to_lists: true}) when is_tuple(some), do: (Tuple.to_list(some) |> Enum.map(&(prepare_to_jsonify(&1, opts))))
   def prepare_to_jsonify(some, opts) when is_tuple(some), do: (raise "Exutils : can't jsonify tuples-in-values with these settings. #{inspect opts}")
-  def prepare_to_jsonify(some, _opts), do: some
+  def prepare_to_jsonify(some, _) when is_binary(some) do
+  	case String.valid?(some) do
+  		true -> some
+		false -> inspect(some)
+  	end
+  end
+  def prepare_to_jsonify(some, _opts) when is_number(some), do: some
+  def prepare_to_jsonify(some, _opts), do: inspect(some)
 
   @spec map_reduce([any], any, non_neg_integer, non_neg_integer, ((any) -> any), ((any, any) -> any)) :: any
   def map_reduce(lst, acc, lenw, tlim, mapper, reducer), do: preduce_inner(lst, acc, lenw, tlim, mapper, reducer, 0)
