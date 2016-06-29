@@ -250,7 +250,10 @@ defmodule Exutils do
 
   @spec makeid :: non_neg_integer
   def makeid do
-    {a, b, c} = :erlang.timestamp
+	{a, b, c} =  case :erlang.function_exported(:erlang, :timestamp, 0) do
+					true -> :erlang.timestamp
+					false -> :erlang.now
+				end
     a*1000000000000 + b*1000000 + c
   end
   @spec get_date :: String.t
